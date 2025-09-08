@@ -82,7 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Format phone number to include +91 for India
       const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
       
-      const response = await apiClient.post('/auth/send-otp', {
+      await apiClient.post('/auth/send-otp', {
         phoneNumber: formattedPhone
       });
       
@@ -125,11 +125,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Call backend logout if needed
       if (user?.token) {
         try {
-          await apiClient.post('/auth/logout', {}, {
-            headers: {
-              Authorization: `Bearer ${user.token}`
-            }
-          });
+          await apiClient.post('/auth/logout', {});
         } catch (error) {
           console.error('Error during logout:', error);
         }
