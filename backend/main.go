@@ -509,11 +509,19 @@ func (s *Server) sendOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate 6-digit OTP
-	otp, err := generateOTP()
-	if err != nil {
-		http.Error(w, "Failed to generate OTP", http.StatusInternalServerError)
-		return
+	// Generate 6-digit OTP (or use test OTP for development)
+	var otp string
+	
+	// Test phone number for easy testing
+	if request.PhoneNumber == "+919999999999" || request.PhoneNumber == "+911234567890" {
+		otp = "123456" // Test OTP
+	} else {
+		generatedOTP, err := generateOTP()
+		if err != nil {
+			http.Error(w, "Failed to generate OTP", http.StatusInternalServerError)
+			return
+		}
+		otp = generatedOTP
 	}
 
 	// Store OTP (expires in 5 minutes)
@@ -523,7 +531,7 @@ func (s *Server) sendOTP(w http.ResponseWriter, r *http.Request) {
 		Phone:     request.PhoneNumber,
 	}
 
-	// TODO: Send actual SMS using Twilio/AWS SNS
+	// Print OTP for development (in production, send SMS)
 	fmt.Printf("OTP for %s: %s\n", request.PhoneNumber, otp)
 
 	w.Header().Set("Content-Type", "application/json")

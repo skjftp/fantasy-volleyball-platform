@@ -38,10 +38,10 @@ const TeamCreatePage: React.FC = () => {
   const MAX_PLAYERS_PER_TEAM = 4;
 
   const categories = [
-    { key: 'setter' as const, label: 'Setter', short: 'S', color: 'bg-blue-100 text-blue-800' },
-    { key: 'attacker' as const, label: 'Attacker', short: 'A', color: 'bg-red-100 text-red-800' },
-    { key: 'blocker' as const, label: 'Blocker', short: 'B', color: 'bg-green-100 text-green-800' },
-    { key: 'universal' as const, label: 'Universal', short: 'U', color: 'bg-purple-100 text-purple-800' }
+    { key: 'setter' as const, label: 'Setter', short: 'SET', color: 'bg-blue-100 text-blue-800' },
+    { key: 'attacker' as const, label: 'Attacker', short: 'ATT', color: 'bg-red-100 text-red-800' },
+    { key: 'blocker' as const, label: 'Blocker', short: 'BLK', color: 'bg-green-100 text-green-800' },
+    { key: 'universal' as const, label: 'Universal', short: 'UNI', color: 'bg-purple-100 text-purple-800' }
   ];
 
   useEffect(() => {
@@ -71,7 +71,7 @@ const TeamCreatePage: React.FC = () => {
           name: 'Arjun Sharma',
           team: 'MUM',
           category: 'setter',
-          credits: 10,
+          credits: 10.5,
           imageUrl: 'https://via.placeholder.com/60',
           isStarting6: true,
           lastMatchPoints: 45,
@@ -294,38 +294,65 @@ const TeamCreatePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-10">
-        <div className="container py-3">
+      <header className="bg-gray-900 text-white sticky top-0 z-10">
+        <div className="container py-4">
           <div className="flex items-center justify-between">
             <button 
               onClick={() => navigate(-1)}
-              className="flex items-center text-gray-600 hover:text-gray-800"
+              className="flex items-center text-white hover:text-gray-300"
             >
               <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11a2 2 0 010-2.828L6.293 4.465a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z" clipRule="evenodd" />
               </svg>
-              Back
             </button>
             
             <div className="text-center flex-1 mx-4">
-              <div className="flex items-center justify-center space-x-2 text-sm">
-                <span className="font-medium">{match.team1.code}</span>
-                <span className="text-gray-400">vs</span>
-                <span className="font-medium">{match.team2.code}</span>
+              <div className="flex items-center justify-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <img src={match.team1.logo} alt={match.team1.code} className="w-8 h-8 rounded-full" />
+                  <span className="font-medium">{match.team1.code}</span>
+                  <span className="text-gray-400 text-sm">0</span>
+                </div>
+                
+                <div className="text-center">
+                  <div className="text-sm text-gray-400">Players</div>
+                  <div className="font-bold text-lg">{selectedPlayers.length}/{TEAM_SIZE}</div>
+                </div>
+                
+                <div className="text-center">
+                  <div className="text-sm text-gray-400">Credits Left</div>
+                  <div className="font-bold text-lg">{(TOTAL_CREDITS - creditsUsed).toFixed(1)}</div>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-400 text-sm">0</span>
+                  <span className="font-medium">{match.team2.code}</span>
+                  <img src={match.team2.logo} alt={match.team2.code} className="w-8 h-8 rounded-full" />
+                </div>
               </div>
-              <div className="text-xs text-orange-600 font-medium">
+              
+              <div className="text-xs text-orange-400 font-medium mt-1">
                 {formatTimeLeft(match.startTime)}
               </div>
             </div>
 
-            <div className="text-right">
-              <div className="text-sm font-medium text-gray-800">
-                {TOTAL_CREDITS - creditsUsed} Credits Left
-              </div>
-              <div className="text-xs text-gray-600">
-                {selectedPlayers.length}/{TEAM_SIZE} Players
-              </div>
-            </div>
+            <div className="w-6"></div>
+          </div>
+          
+          {/* Team Progress Indicators */}
+          <div className="flex justify-center mt-3 space-x-1">
+            {Array.from({ length: TEAM_SIZE }, (_, index) => (
+              <div
+                key={index}
+                className={`w-8 h-2 rounded ${
+                  index < selectedPlayers.length ? 'bg-white' : 'bg-gray-600'
+                }`}
+              />
+            ))}
+          </div>
+          
+          <div className="text-center text-xs text-gray-400 mt-2">
+            Max {MAX_PLAYERS_PER_TEAM} players from a team
           </div>
         </div>
       </header>
@@ -338,18 +365,28 @@ const TeamCreatePage: React.FC = () => {
               <button
                 key={category.key}
                 onClick={() => setActiveCategory(category.key)}
-                className={`flex-1 min-w-20 py-3 px-3 text-center transition-colors ${
+                className={`flex-1 min-w-16 py-3 px-2 text-center transition-colors ${
                   activeCategory === category.key
-                    ? 'border-b-2 border-primary-600 text-primary-600 font-medium'
+                    ? 'border-b-2 border-red-600 text-red-600 font-medium'
                     : 'text-gray-600 hover:text-gray-800'
                 }`}
               >
                 <div className="text-sm font-medium">{category.short}</div>
                 <div className="text-xs">
-                  {counts[category.key]}/{category.key === activeCategory ? '∞' : '1+'}
+                  Pick {category.key === 'setter' ? '1-8' : category.key === 'attacker' ? '1-8' : category.key === 'blocker' ? '1-8' : '1-8'} {category.label}s
                 </div>
               </button>
             ))}
+          </div>
+          
+          {/* Quick Create Button */}
+          <div className="mt-3 text-center">
+            <button className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center mx-auto space-x-2">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+              </svg>
+              <span>Quick Create</span>
+            </button>
           </div>
         </div>
       </div>
@@ -458,35 +495,25 @@ const TeamCreatePage: React.FC = () => {
       </main>
 
       {/* Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4">
+      <div className="fixed bottom-0 left-0 right-0 bg-white p-4">
         <div className="container">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <div className="text-sm font-medium text-gray-800">
-                Players: {selectedPlayers.length}/{TEAM_SIZE}
-              </div>
-              <div className="text-xs text-gray-600">
-                Credits: {creditsUsed}/{TOTAL_CREDITS}
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-600">
-                Max 4 from one team
-              </div>
-            </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button className="py-3 rounded-lg font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+              Team Preview
+            </button>
+            
+            <button
+              onClick={handleContinue}
+              disabled={!isTeamValid()}
+              className={`py-3 rounded-lg font-medium transition-colors ${
+                isTeamValid()
+                  ? 'bg-gray-600 text-white hover:bg-gray-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              Continue
+            </button>
           </div>
-          
-          <button
-            onClick={handleContinue}
-            disabled={!isTeamValid()}
-            className={`w-full py-3 rounded-lg font-medium transition-colors ${
-              isTeamValid()
-                ? 'bg-primary-600 text-white hover:bg-primary-700'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            Continue to Captain Selection
-          </button>
         </div>
       </div>
 

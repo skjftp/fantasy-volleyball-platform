@@ -69,10 +69,10 @@ const LoginPage: React.FC = () => {
         {/* Logo Section */}
         <div className="text-center mb-8">
           <div className="bg-white rounded-full w-20 h-20 mx-auto flex items-center justify-center mb-4 shadow-lg">
-            <span className="text-2xl font-bold text-primary-600">V11</span>
+            <span className="text-2xl font-bold text-primary-600">PV</span>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">VISION11</h1>
-          <p className="text-primary-100 text-lg">"SAPNO KA VISION"</p>
+          <h1 className="text-3xl font-bold text-white mb-2">PrimeV Fantasy</h1>
+          <p className="text-primary-100 text-lg">"Play Smart, Win Big"</p>
         </div>
 
         {/* Login Form */}
@@ -101,6 +101,15 @@ const LoginPage: React.FC = () => {
                     maxLength={10}
                     required
                   />
+                </div>
+                
+                {/* Test Login Hint */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-blue-800 text-sm">
+                    <strong>For Testing:</strong><br />
+                    Phone: 9999999999 or 1234567890<br />
+                    OTP: 123456
+                  </p>
                 </div>
               </div>
 
