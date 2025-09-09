@@ -318,6 +318,7 @@ func main() {
 	router.HandleFunc("/api/admin/match-squads/match/{matchId}", server.adminAuthMiddleware(server.getMatchSquad)).Methods("GET")
 	router.HandleFunc("/api/admin/match-squads/match/{matchId}", server.adminAuthMiddleware(server.updateMatchSquad)).Methods("PUT")
 	router.HandleFunc("/api/admin/match-squads/match/{matchId}/cleanup", server.adminAuthMiddleware(server.cleanupOldMatchPlayers)).Methods("DELETE")
+	router.HandleFunc("/api/admin/cleanup/all", server.adminAuthMiddleware(server.cleanupAllOldData)).Methods("DELETE")
 
 	port := os.Getenv("PORT")
 	if port == "" {
