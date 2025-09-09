@@ -1000,14 +1000,45 @@ func (s *Server) updateLeague(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	leagueId := vars["leagueId"]
 	
-	var league League
-	if err := json.NewDecoder(r.Body).Decode(&league); err != nil {
+	var updates map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	
 	ctx := context.Background()
-	_, err := s.firestoreClient.Collection("leagues").Doc(leagueId).Set(ctx, league)
+	
+	// Check if document exists first
+	doc, err := s.firestoreClient.Collection("leagues").Doc(leagueId).Get(ctx)
+	if err != nil {
+		http.Error(w, "League not found", http.StatusNotFound)
+		return
+	}
+	
+	if !doc.Exists() {
+		http.Error(w, "League not found", http.StatusNotFound)
+		return
+	}
+	
+	// Prepare updates (remove immutable fields)
+	updateData := []firestore.Update{}
+	if name, ok := updates["name"].(string); ok {
+		updateData = append(updateData, firestore.Update{Path: "name", Value: name})
+	}
+	if desc, ok := updates["description"].(string); ok {
+		updateData = append(updateData, firestore.Update{Path: "description", Value: desc})
+	}
+	if startDate, ok := updates["startDate"].(string); ok {
+		updateData = append(updateData, firestore.Update{Path: "startDate", Value: startDate})
+	}
+	if endDate, ok := updates["endDate"].(string); ok {
+		updateData = append(updateData, firestore.Update{Path: "endDate", Value: endDate})
+	}
+	if status, ok := updates["status"].(string); ok {
+		updateData = append(updateData, firestore.Update{Path: "status", Value: status})
+	}
+	
+	_, err = s.firestoreClient.Collection("leagues").Doc(leagueId).Update(ctx, updateData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -1038,14 +1069,48 @@ func (s *Server) updateTeam(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	teamId := vars["teamId"]
 	
-	var team Team
-	if err := json.NewDecoder(r.Body).Decode(&team); err != nil {
+	var updates map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	
 	ctx := context.Background()
-	_, err := s.firestoreClient.Collection("teams").Doc(teamId).Set(ctx, team)
+	
+	// Check if document exists first
+	doc, err := s.firestoreClient.Collection("teams").Doc(teamId).Get(ctx)
+	if err != nil {
+		http.Error(w, "Team not found", http.StatusNotFound)
+		return
+	}
+	
+	if !doc.Exists() {
+		http.Error(w, "Team not found", http.StatusNotFound)
+		return
+	}
+	
+	// Prepare updates
+	updateData := []firestore.Update{}
+	if name, ok := updates["name"].(string); ok {
+		updateData = append(updateData, firestore.Update{Path: "name", Value: name})
+	}
+	if code, ok := updates["code"].(string); ok {
+		updateData = append(updateData, firestore.Update{Path: "code", Value: code})
+	}
+	if logo, ok := updates["logo"].(string); ok {
+		updateData = append(updateData, firestore.Update{Path: "logo", Value: logo})
+	}
+	if homeCity, ok := updates["homeCity"].(string); ok {
+		updateData = append(updateData, firestore.Update{Path: "homeCity", Value: homeCity})
+	}
+	if captain, ok := updates["captain"].(string); ok {
+		updateData = append(updateData, firestore.Update{Path: "captain", Value: captain})
+	}
+	if coach, ok := updates["coach"].(string); ok {
+		updateData = append(updateData, firestore.Update{Path: "coach", Value: coach})
+	}
+	
+	_, err = s.firestoreClient.Collection("teams").Doc(teamId).Update(ctx, updateData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -1076,14 +1141,54 @@ func (s *Server) updateContestTemplate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	templateId := vars["templateId"]
 	
-	var template ContestTemplate
-	if err := json.NewDecoder(r.Body).Decode(&template); err != nil {
+	var updates map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	
 	ctx := context.Background()
-	_, err := s.firestoreClient.Collection("contestTemplates").Doc(templateId).Set(ctx, template)
+	
+	// Check if document exists first
+	doc, err := s.firestoreClient.Collection("contestTemplates").Doc(templateId).Get(ctx)
+	if err != nil {
+		http.Error(w, "Template not found", http.StatusNotFound)
+		return
+	}
+	
+	if !doc.Exists() {
+		http.Error(w, "Template not found", http.StatusNotFound)
+		return
+	}
+	
+	// Prepare updates
+	updateData := []firestore.Update{}
+	if name, ok := updates["name"].(string); ok {
+		updateData = append(updateData, firestore.Update{Path: "name", Value: name})
+	}
+	if desc, ok := updates["description"].(string); ok {
+		updateData = append(updateData, firestore.Update{Path: "description", Value: desc})
+	}
+	if entryFee, ok := updates["entryFee"].(float64); ok {
+		updateData = append(updateData, firestore.Update{Path: "entryFee", Value: int(entryFee)})
+	}
+	if prizePool, ok := updates["prizePool"].(float64); ok {
+		updateData = append(updateData, firestore.Update{Path: "prizePool", Value: int(prizePool)})
+	}
+	if maxSpots, ok := updates["maxSpots"].(float64); ok {
+		updateData = append(updateData, firestore.Update{Path: "maxSpots", Value: int(maxSpots)})
+	}
+	if maxTeamsPerUser, ok := updates["maxTeamsPerUser"].(float64); ok {
+		updateData = append(updateData, firestore.Update{Path: "maxTeamsPerUser", Value: int(maxTeamsPerUser)})
+	}
+	if winnerPercentage, ok := updates["winnerPercentage"].(float64); ok {
+		updateData = append(updateData, firestore.Update{Path: "winnerPercentage", Value: winnerPercentage})
+	}
+	if isGuaranteed, ok := updates["isGuaranteed"].(bool); ok {
+		updateData = append(updateData, firestore.Update{Path: "isGuaranteed", Value: isGuaranteed})
+	}
+	
+	_, err = s.firestoreClient.Collection("contestTemplates").Doc(templateId).Update(ctx, updateData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
