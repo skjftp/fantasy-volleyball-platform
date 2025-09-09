@@ -146,70 +146,27 @@ const HomePage: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-red-600 text-white">
-        <div className="container py-4">
+        <div className="container py-3">
           <div className="text-center">
-            <div className="flex items-center justify-center space-x-3">
-              <div className="bg-white rounded-lg p-2">
-                <span className="text-red-600 font-bold text-lg">PV</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">PrimeV Fantasy</h1>
-                <p className="text-red-100 text-sm">"Play Smart, Win Big"</p>
-              </div>
-            </div>
+            <h1 className="text-xl font-bold">PrimeV Fantasy</h1>
           </div>
         </div>
       </header>
 
-      {/* Volleyball Focus Header */}
-      <div className="bg-red-600 text-white">
-        <div className="container">
-          <div className="text-center py-4">
-            <div className="flex items-center justify-center space-x-3">
-              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-xl font-bold">Volleyball Fantasy</h2>
-                <p className="text-red-100 text-sm">Create your dream volleyball team</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
       <main className="container py-4">
         {/* Prize Banner */}
-        <div className="bg-gradient-to-r from-red-600 via-orange-500 to-yellow-500 rounded-xl p-6 text-white mb-6 relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="flex items-center space-x-2 mb-2">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h2 className="text-xl font-bold">WIN EXCITING PRIZES</h2>
+        <div className="bg-gradient-to-r from-red-600 to-orange-500 rounded-lg p-4 text-white mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold">WIN EXCITING PRIZES</h2>
+              <p className="text-red-100 text-sm">Join free contests!</p>
             </div>
-            <p className="text-yellow-100">
-              Join free contests and compete for amazing cash prizes!
-            </p>
-            
-            <div className="grid grid-cols-2 gap-4 mt-4 text-center">
-              <div className="bg-white bg-opacity-20 rounded-lg p-3">
-                <p className="text-2xl font-bold">{userProfile?.totalContestsJoined || 0}</p>
-                <p className="text-sm text-yellow-100">Contests Joined</p>
-              </div>
-              <div className="bg-white bg-opacity-20 rounded-lg p-3">
-                <p className="text-2xl font-bold">{userProfile?.totalWins || 0}</p>
-                <p className="text-sm text-yellow-100">Total Wins</p>
-              </div>
+            <div className="text-right">
+              <div className="text-lg font-bold">{userProfile?.totalWins || 0}</div>
+              <div className="text-xs text-red-100">Total Wins</div>
             </div>
           </div>
-          
-          {/* Decorative elements */}
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-10 rounded-full -mr-10 -mt-10"></div>
-          <div className="absolute bottom-0 left-0 w-16 h-16 bg-white bg-opacity-10 rounded-full -ml-8 -mb-8"></div>
         </div>
 
         {/* Matches Section */}

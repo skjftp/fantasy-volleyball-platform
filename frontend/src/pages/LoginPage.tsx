@@ -67,12 +67,11 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         {/* Logo Section */}
-        <div className="text-center mb-8">
-          <div className="bg-white rounded-full w-20 h-20 mx-auto flex items-center justify-center mb-4 shadow-lg">
-            <span className="text-2xl font-bold text-primary-600">PV</span>
+        <div className="text-center mb-6">
+          <div className="bg-white rounded-full w-16 h-16 mx-auto flex items-center justify-center mb-3 shadow-lg">
+            <span className="text-xl font-bold text-red-600">PV</span>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">PrimeV Fantasy</h1>
-          <p className="text-primary-100 text-lg">"Play Smart, Win Big"</p>
+          <h1 className="text-2xl font-bold text-white">PrimeV Fantasy</h1>
         </div>
 
         {/* Login Form */}
