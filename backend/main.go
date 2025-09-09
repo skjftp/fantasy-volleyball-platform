@@ -102,11 +102,12 @@ type ContestTemplate struct {
 
 type Player struct {
 	PlayerID             string            `json:"playerId" firestore:"playerId"`
+	TeamID               string            `json:"teamId" firestore:"teamId"`
 	MatchID              string            `json:"matchId" firestore:"matchId"`
 	Name                 string            `json:"name" firestore:"name"`
 	Team                 string            `json:"team" firestore:"team"`
 	Category             string            `json:"category" firestore:"category"`
-	Credits              int               `json:"credits" firestore:"credits"`
+	Credits              float64           `json:"credits" firestore:"credits"`
 	ImageURL             string            `json:"imageUrl" firestore:"imageUrl"`
 	IsStarting6          bool              `json:"isStarting6" firestore:"isStarting6"`
 	IsSubstitute         bool              `json:"isSubstitute" firestore:"isSubstitute"`
@@ -263,6 +264,7 @@ func main() {
 	router.HandleFunc("/api/admin/contest-templates/{templateId}", server.adminAuthMiddleware(server.deleteContestTemplate)).Methods("DELETE")
 	router.HandleFunc("/api/admin/contests", server.adminAuthMiddleware(server.createContest)).Methods("POST")
 	router.HandleFunc("/api/admin/players", server.adminAuthMiddleware(server.createPlayer)).Methods("POST")
+	router.HandleFunc("/api/admin/players/team/{teamId}", server.adminAuthMiddleware(server.getPlayersByTeam)).Methods("GET")
 	router.HandleFunc("/api/admin/players/{playerId}/stats", server.adminAuthMiddleware(server.updatePlayerStats)).Methods("PUT")
 
 	port := os.Getenv("PORT")
@@ -460,7 +462,8 @@ func (s *Server) createPlayer(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	ctx := context.Background()
-	_, _, err := s.firestoreClient.Collection("players").Add(ctx, player)
+	// Use the playerId as the document ID so we can reference it later
+	_, err := s.firestoreClient.Collection("players").Doc(player.PlayerID).Set(ctx, player)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -1199,6 +1202,30 @@ func (s *Server) deleteContestTemplate(w http.ResponseWriter, r *http.Request) {
 	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+}
+
+// Admin: Get players by team
+func (s *Server) getPlayersByTeam(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	teamId := vars["teamId"]
+	
+	ctx := context.Background()
+	iter := s.firestoreClient.Collection("players").Where("teamId", "==", teamId).Documents(ctx)
+	
+	var players []Player
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			break
+		}
+		
+		var player Player
+		doc.DataTo(&player)
+		players = append(players, player)
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(players)
 }
 
 // Admin: Update player stats (placeholder)  

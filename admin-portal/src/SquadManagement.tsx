@@ -41,6 +41,7 @@ interface SquadManagementProps {
 const SquadManagement: React.FC<SquadManagementProps> = ({ teams, leagues, getAuthHeaders, loading, setLoading }) => {
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
+  const [existingPlayers, setExistingPlayers] = useState<Player[]>([]);
 
   // Add a new empty player to the list
   const addNewPlayer = () => {
@@ -66,6 +67,26 @@ const SquadManagement: React.FC<SquadManagementProps> = ({ teams, leagues, getAu
   // Remove a player
   const removePlayer = (index: number) => {
     setPlayers(players.filter((_, i) => i !== index));
+  };
+
+  // Fetch existing players for selected team
+  const fetchTeamPlayers = async (teamId: string) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      const response = await fetch(`${apiUrl}/admin/players/team/${teamId}`, {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setExistingPlayers(data || []);
+      } else {
+        setExistingPlayers([]);
+      }
+    } catch (error) {
+      console.error('Error fetching team players:', error);
+      setExistingPlayers([]);
+    }
   };
 
   // Handle image upload
@@ -129,7 +150,10 @@ const SquadManagement: React.FC<SquadManagementProps> = ({ teams, leagues, getAu
 
       alert(`Successfully created ${players.length} players for the team!`);
       setPlayers([]);
-      setSelectedTeamId('');
+      // Refresh existing players list
+      if (selectedTeamId) {
+        fetchTeamPlayers(selectedTeamId);
+      }
     } catch (error) {
       console.error('Error creating players:', error);
       alert('Error creating players. Some players may have been created.');
@@ -154,8 +178,14 @@ const SquadManagement: React.FC<SquadManagementProps> = ({ teams, leagues, getAu
           <select
             value={selectedTeamId}
             onChange={(e) => {
-              setSelectedTeamId(e.target.value);
-              setPlayers([]); // Clear players when changing teams
+              const teamId = e.target.value;
+              setSelectedTeamId(teamId);
+              setPlayers([]); // Clear new players when changing teams
+              if (teamId) {
+                fetchTeamPlayers(teamId); // Fetch existing players
+              } else {
+                setExistingPlayers([]);
+              }
             }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           >
@@ -186,11 +216,42 @@ const SquadManagement: React.FC<SquadManagementProps> = ({ teams, leagues, getAu
         )}
       </div>
 
+      {/* Existing Players Display */}
+      {selectedTeamId && existingPlayers.length > 0 && (
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-6">
+            Existing Players - {selectedTeam?.name} ({existingPlayers.length} players)
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {existingPlayers.map((player) => (
+              <div key={player.playerId} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div className="flex items-center space-x-3">
+                  <img
+                    src={player.imageUrl || 'https://randomuser.me/api/portraits/men/1.jpg'}
+                    alt={player.name}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-gray-300"
+                  />
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-800">{player.name}</h4>
+                    <div className="text-sm text-gray-600">
+                      {player.category} • {player.credits} credits
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {player.isStarting6 ? 'Starting 6' : 'Substitute'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Players Creation */}
       {selectedTeamId && (
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-800">Create Players for {selectedTeam?.name}</h3>
+            <h3 className="text-lg font-semibold text-gray-800">Add New Players for {selectedTeam?.name}</h3>
             <div className="flex space-x-3">
               <button
                 onClick={addNewPlayer}
