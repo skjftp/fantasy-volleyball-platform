@@ -246,7 +246,7 @@ func main() {
 	// Admin routes (require admin authentication) - Hierarchical structure
 	router.HandleFunc("/api/admin/leagues", server.adminAuthMiddleware(server.createLeague)).Methods("POST")
 	router.HandleFunc("/api/admin/leagues", server.adminAuthMiddleware(server.getLeagues)).Methods("GET")
-	router.HandleFunc("/api/admin/teams", server.adminAuthMiddleware(server.createTeam)).Methods("POST")  
+	router.HandleFunc("/api/admin/teams", server.adminAuthMiddleware(server.createAdminTeam)).Methods("POST")  
 	router.HandleFunc("/api/admin/teams", server.adminAuthMiddleware(server.getTeams)).Methods("GET")
 	router.HandleFunc("/api/admin/squads", server.adminAuthMiddleware(server.createSquad)).Methods("POST")
 	router.HandleFunc("/api/admin/squads/{teamId}", server.adminAuthMiddleware(server.getTeamSquads)).Methods("GET")
@@ -849,6 +849,150 @@ func (s *Server) adminLogout(w http.ResponseWriter, r *http.Request) {
 		"status": "success",
 		"message": "Admin logged out successfully",
 	})
+}
+
+// Admin: Create league
+func (s *Server) createLeague(w http.ResponseWriter, r *http.Request) {
+	var league League
+	if err := json.NewDecoder(r.Body).Decode(&league); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	ctx := context.Background()
+	_, _, err := s.firestoreClient.Collection("leagues").Add(ctx, league)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "created"})
+}
+
+// Admin: Get leagues
+func (s *Server) getLeagues(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	iter := s.firestoreClient.Collection("leagues").Documents(ctx)
+	var leagues []League
+	
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			break
+		}
+		
+		var league League
+		doc.DataTo(&league)
+		leagues = append(leagues, league)
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(leagues)
+}
+
+// Admin: Create team
+func (s *Server) createAdminTeam(w http.ResponseWriter, r *http.Request) {
+	var team Team
+	if err := json.NewDecoder(r.Body).Decode(&team); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	ctx := context.Background()
+	_, _, err := s.firestoreClient.Collection("teams").Add(ctx, team)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "created"})
+}
+
+// Admin: Get teams
+func (s *Server) getTeams(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	iter := s.firestoreClient.Collection("teams").Documents(ctx)
+	var teams []Team
+	
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			break
+		}
+		
+		var team Team
+		doc.DataTo(&team)
+		teams = append(teams, team)
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(teams)
+}
+
+// Admin: Create contest template
+func (s *Server) createContestTemplate(w http.ResponseWriter, r *http.Request) {
+	var template ContestTemplate
+	if err := json.NewDecoder(r.Body).Decode(&template); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	ctx := context.Background()
+	_, _, err := s.firestoreClient.Collection("contestTemplates").Add(ctx, template)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "created"})
+}
+
+// Admin: Get contest templates
+func (s *Server) getContestTemplates(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	iter := s.firestoreClient.Collection("contestTemplates").Documents(ctx)
+	var templates []ContestTemplate
+	
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			break
+		}
+		
+		var template ContestTemplate
+		doc.DataTo(&template)
+		templates = append(templates, template)
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(templates)
+}
+
+// Admin: Create squad (placeholder)
+func (s *Server) createSquad(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "created", "message": "Squad creation coming soon"})
+}
+
+// Admin: Get team squads (placeholder)
+func (s *Server) getTeamSquads(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode([]interface{}{})
+}
+
+// Admin: Get admin matches (placeholder)
+func (s *Server) getAdminMatches(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode([]interface{}{})
+}
+
+// Admin: Update player stats (placeholder)  
+func (s *Server) updatePlayerStats(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "updated", "message": "Stats update coming soon"})
 }
 
 // Generate 6-digit OTP
