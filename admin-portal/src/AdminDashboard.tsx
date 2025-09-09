@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import SquadManagement from './SquadManagement';
 
 interface Admin {
   uid: string;
@@ -61,6 +62,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
   });
 
   const [editLeague, setEditLeague] = useState<League | null>(null);
+  const [editTeam, setEditTeam] = useState<Team | null>(null);
 
   const [newTeam, setNewTeam] = useState({
     name: '',
@@ -412,6 +414,43 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
     }
   };
 
+  const handleEditTeam = (team: Team) => {
+    setEditTeam(team);
+    setEditingItem(team.teamId);
+  };
+
+  const handleUpdateTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTeam) return;
+    
+    setLoading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      const response = await fetch(`${apiUrl}/admin/teams/${editTeam.teamId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(editTeam)
+      });
+
+      if (response.ok) {
+        alert('Team updated successfully!');
+        setEditTeam(null);
+        setEditingItem(null);
+        fetchTeams();
+      } else {
+        alert('Failed to update team');
+      }
+    } catch (error) {
+      console.error('Error updating team:', error);
+      alert('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const tabs = [
     { key: 'leagues' as const, label: '1. Create Leagues', icon: '🏆' },
     { key: 'teams' as const, label: '2. Create Teams', icon: '⚽' },
@@ -750,35 +789,112 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
               <div className="divide-y">
                 {teams.map((team) => (
                   <div key={team.teamId} className="p-6 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <img src={team.logo} alt={team.code} className="w-12 h-12 rounded-full" />
-                        <div>
-                          <h4 className="font-medium text-gray-800">{team.name} ({team.code})</h4>
-                          <p className="text-sm text-gray-600">{team.homeCity} • Captain: {team.captain}</p>
+                    {editingItem === team.teamId ? (
+                      /* Edit Team Form */
+                      <form onSubmit={handleUpdateTeam} className="space-y-4">
+                        <div className="grid grid-cols-3 gap-4">
+                          <input
+                            type="text"
+                            value={editTeam?.name || ''}
+                            onChange={(e) => setEditTeam(editTeam ? {...editTeam, name: e.target.value} : null)}
+                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                            placeholder="Team Name"
+                            required
+                          />
+                          <input
+                            type="text"
+                            value={editTeam?.code || ''}
+                            onChange={(e) => setEditTeam(editTeam ? {...editTeam, code: e.target.value} : null)}
+                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                            placeholder="Code"
+                            maxLength={3}
+                            required
+                          />
+                          <input
+                            type="text"
+                            value={editTeam?.homeCity || ''}
+                            onChange={(e) => setEditTeam(editTeam ? {...editTeam, homeCity: e.target.value} : null)}
+                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                            placeholder="Home City"
+                          />
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="text-right">
-                          <div className="text-sm text-gray-600">League: {team.leagueId}</div>
-                          <div className="text-xs text-gray-500">Coach: {team.coach}</div>
+                        <div className="grid grid-cols-3 gap-4">
+                          <input
+                            type="text"
+                            value={editTeam?.captain || ''}
+                            onChange={(e) => setEditTeam(editTeam ? {...editTeam, captain: e.target.value} : null)}
+                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                            placeholder="Captain Name"
+                          />
+                          <input
+                            type="text"
+                            value={editTeam?.coach || ''}
+                            onChange={(e) => setEditTeam(editTeam ? {...editTeam, coach: e.target.value} : null)}
+                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                            placeholder="Coach Name"
+                          />
+                          <select
+                            value={editTeam?.leagueId || ''}
+                            onChange={(e) => setEditTeam(editTeam ? {...editTeam, leagueId: e.target.value} : null)}
+                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                          >
+                            <option value="">Select League</option>
+                            {leagues.map(league => (
+                              <option key={league.leagueId} value={league.leagueId}>
+                                {league.name}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                         <div className="flex space-x-2">
                           <button
-                            onClick={() => alert('Team editing feature coming soon!')}
-                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                            type="submit"
+                            className="bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700"
+                            disabled={loading}
                           >
-                            Edit
+                            {loading ? 'Saving...' : 'Save Team'}
                           </button>
                           <button
-                            onClick={() => handleDeleteTeam(team.teamId)}
-                            className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                            type="button"
+                            onClick={() => {setEditingItem(null); setEditTeam(null);}}
+                            className="bg-gray-500 text-white px-4 py-2 rounded-md text-sm hover:bg-gray-600"
                           >
-                            Delete
+                            Cancel
                           </button>
                         </div>
+                      </form>
+                    ) : (
+                      /* Display Mode */
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <img src={team.logo} alt={team.code} className="w-12 h-12 rounded-full" />
+                          <div>
+                            <h4 className="font-medium text-gray-800">{team.name} ({team.code})</h4>
+                            <p className="text-sm text-gray-600">{team.homeCity} • Captain: {team.captain}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <div className="text-right">
+                            <div className="text-sm text-gray-600">League: {team.leagueId}</div>
+                            <div className="text-xs text-gray-500">Coach: {team.coach}</div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleEditTeam(team)}
+                              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTeam(team.teamId)}
+                              className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -944,11 +1060,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
         )}
 
         {/* Other tabs - placeholder for now */}
+        {/* Step 3: Create Squads */}
         {activeTab === 'squads' && (
-          <div className="bg-white rounded-lg shadow-lg p-6 text-center">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Step 3: Squad Management</h2>
-            <p className="text-gray-600">Assign players to team squads for each match</p>
-          </div>
+          <SquadManagement 
+            teams={teams}
+            leagues={leagues}
+            getAuthHeaders={getAuthHeaders}
+            loading={loading}
+            setLoading={setLoading}
+          />
         )}
 
         {activeTab === 'matches' && (
