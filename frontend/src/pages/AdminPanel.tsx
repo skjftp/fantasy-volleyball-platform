@@ -265,6 +265,38 @@ const AdminPanel: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Team 1 Logo URL</label>
+                    <input
+                      type="url"
+                      value={newMatch.team1Logo}
+                      onChange={(e) => setNewMatch({...newMatch, team1Logo: e.target.value})}
+                      className="input-field"
+                      placeholder="https://example.com/logo1.png (optional)"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Team 1 Logo Upload</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          // For now, create a URL for the uploaded file
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            setNewMatch({...newMatch, team1Logo: event.target?.result as string});
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="input-field text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Team 2 Name</label>
                     <input
                       type="text"
@@ -285,6 +317,37 @@ const AdminPanel: React.FC = () => {
                       placeholder="DEL"
                       maxLength={3}
                       required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Team 2 Logo URL</label>
+                    <input
+                      type="url"
+                      value={newMatch.team2Logo}
+                      onChange={(e) => setNewMatch({...newMatch, team2Logo: e.target.value})}
+                      className="input-field"
+                      placeholder="https://example.com/logo2.png (optional)"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Team 2 Logo Upload</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            setNewMatch({...newMatch, team2Logo: event.target?.result as string});
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="input-field text-sm"
                     />
                   </div>
                 </div>

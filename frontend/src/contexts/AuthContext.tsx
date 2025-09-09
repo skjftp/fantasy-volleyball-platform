@@ -146,8 +146,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Add token to all API requests when user is authenticated
   useEffect(() => {
     if (user?.token) {
-      // You can add an interceptor here if using axios, or modify apiClient
-      const originalRequest = apiClient.request;
+      // Store the original request function
+      if (!apiClient.originalRequest) {
+        apiClient.originalRequest = apiClient.request;
+      }
+      
+      // Override the request function to always include auth token
       apiClient.request = function(endpoint: string, options: RequestInit = {}) {
         const authOptions = {
           ...options,
@@ -156,7 +160,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             Authorization: `Bearer ${user.token}`
           }
         };
-        return originalRequest.call(this, endpoint, authOptions);
+        return this.originalRequest(endpoint, authOptions);
       };
     }
   }, [user?.token]);

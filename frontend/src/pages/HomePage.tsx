@@ -61,12 +61,12 @@ const HomePage: React.FC = () => {
           team1: {
             name: 'Mumbai Thunder',
             code: 'MUM',
-            logo: 'https://via.placeholder.com/40x40/FF6B35/FFFFFF?text=MUM'
+            logo: 'https://picsum.photos/40?random=1'
           },
           team2: {
             name: 'Delhi Dynamos',
             code: 'DEL',
-            logo: 'https://via.placeholder.com/40x40/004E89/FFFFFF?text=DEL'
+            logo: 'https://picsum.photos/40?random=2'
           },
           startTime: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
           status: 'upcoming',
