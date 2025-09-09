@@ -54,21 +54,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         if (token && userData) {
           const parsedUser = JSON.parse(userData);
-          setUser({ ...parsedUser, token });
           
-          // Fetch latest user profile
+          // Validate token by trying to fetch user profile
           try {
             const profile = await apiClient.get(`/users/${parsedUser.uid}`);
+            // Token is valid, set user and profile
+            setUser({ ...parsedUser, token });
             setUserProfile(profile);
           } catch (error) {
-            console.error('Error fetching user profile:', error);
-            // Clear invalid session
+            console.error('Token validation failed:', error);
+            // Token is invalid or expired, clear session
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_data');
+            setUser(null);
+            setUserProfile(null);
           }
+        } else {
+          // No stored session
+          setUser(null);
+          setUserProfile(null);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+        // Clear invalid session data
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
       } finally {
         setLoading(false);
       }
