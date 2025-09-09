@@ -8,6 +8,7 @@ import TeamCreatePage from './pages/TeamCreatePage';
 import CaptainSelectionPage from './pages/CaptainSelectionPage';
 import ContestsPage from './pages/ContestsPage';
 import MyContestsPage from './pages/MyContestsPage';
+import MyTeamsPage from './pages/MyTeamsPage';
 import MyProfilePage from './pages/MyProfilePage';
 import AdminPanel from './pages/AdminPanel';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -100,6 +101,15 @@ function AppRoutes() {
             element={
               <ProtectedRoute>
                 <MyContestsPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/my-teams" 
+            element={
+              <ProtectedRoute>
+                <MyTeamsPage />
               </ProtectedRoute>
             } 
           />
