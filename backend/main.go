@@ -305,7 +305,7 @@ func main() {
 	router.HandleFunc("/api/admin/team-players/team/{teamId}", server.adminAuthMiddleware(server.getTeamAssociations)).Methods("GET")
 	router.HandleFunc("/api/admin/team-players/{associationId}", server.adminAuthMiddleware(server.deleteTeamPlayer)).Methods("DELETE")
 	
-	// Match-specific players
+	// Match-specific players (placeholder endpoints)
 	router.HandleFunc("/api/admin/match-players", server.adminAuthMiddleware(server.createMatchPlayer)).Methods("POST")
 	router.HandleFunc("/api/admin/match-players/match/{matchId}", server.adminAuthMiddleware(server.getMatchPlayers)).Methods("GET")
 	router.HandleFunc("/api/admin/match-players/{matchPlayerId}/stats", server.adminAuthMiddleware(server.updateMatchPlayerStats)).Methods("PUT")
@@ -496,12 +496,23 @@ func (s *Server) createMatch(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "created"})
 }
 
-// Admin: Create player
+// Admin: Create player (new normalized schema)
 func (s *Server) createPlayer(w http.ResponseWriter, r *http.Request) {
 	var player Player
 	if err := json.NewDecoder(r.Body).Decode(&player); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+	
+	// Ensure all required fields are present for new schema
+	if player.PlayerID == "" {
+		player.PlayerID = fmt.Sprintf("player_%d", time.Now().UnixNano())
+	}
+	if player.CreatedAt == "" {
+		player.CreatedAt = time.Now().Format(time.RFC3339)
+	}
+	if player.Nationality == "" {
+		player.Nationality = "India"
 	}
 	
 	ctx := context.Background()
@@ -1247,13 +1258,10 @@ func (s *Server) deleteContestTemplate(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
 
-// Admin: Get players by team
-func (s *Server) getPlayersByTeam(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	teamId := vars["teamId"]
-	
+// Admin: Get all players (master database)
+func (s *Server) getAllPlayers(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	iter := s.firestoreClient.Collection("players").Where("teamId", "==", teamId).Documents(ctx)
+	iter := s.firestoreClient.Collection("players").Documents(ctx)
 	
 	var players []Player
 	for {
@@ -1269,6 +1277,134 @@ func (s *Server) getPlayersByTeam(w http.ResponseWriter, r *http.Request) {
 	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(players)
+}
+
+// Admin: Update player
+func (s *Server) updatePlayer(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	playerId := vars["playerId"]
+	
+	var player Player
+	if err := json.NewDecoder(r.Body).Decode(&player); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	ctx := context.Background()
+	
+	// Check if document exists first
+	doc, err := s.firestoreClient.Collection("players").Doc(playerId).Get(ctx)
+	if err != nil {
+		http.Error(w, "Player not found", http.StatusNotFound)
+		return
+	}
+	
+	if !doc.Exists() {
+		http.Error(w, "Player not found", http.StatusNotFound)
+		return
+	}
+	
+	_, err = s.firestoreClient.Collection("players").Doc(playerId).Set(ctx, player)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
+}
+
+// Admin: Delete player
+func (s *Server) deletePlayer(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	playerId := vars["playerId"]
+	
+	ctx := context.Background()
+	_, err := s.firestoreClient.Collection("players").Doc(playerId).Delete(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+}
+
+// Admin: Create team-player association
+func (s *Server) createTeamPlayer(w http.ResponseWriter, r *http.Request) {
+	var association TeamPlayer
+	if err := json.NewDecoder(r.Body).Decode(&association); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	ctx := context.Background()
+	_, err := s.firestoreClient.Collection("teamPlayers").Doc(association.AssociationID).Set(ctx, association)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "created"})
+}
+
+// Admin: Get team associations
+func (s *Server) getTeamAssociations(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	teamId := vars["teamId"]
+	
+	ctx := context.Background()
+	iter := s.firestoreClient.Collection("teamPlayers").Where("teamId", "==", teamId).Where("isActive", "==", true).Documents(ctx)
+	
+	var associations []TeamPlayer
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			break
+		}
+		
+		var association TeamPlayer
+		doc.DataTo(&association)
+		associations = append(associations, association)
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(associations)
+}
+
+// Admin: Delete team-player association
+func (s *Server) deleteTeamPlayer(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	associationId := vars["associationId"]
+	
+	ctx := context.Background()
+	_, err := s.firestoreClient.Collection("teamPlayers").Doc(associationId).Delete(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+}
+
+// Admin: Create match player (placeholder)
+func (s *Server) createMatchPlayer(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "created", "message": "Match player creation coming soon"})
+}
+
+// Admin: Get match players (placeholder)
+func (s *Server) getMatchPlayers(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode([]interface{}{})
+}
+
+// Admin: Update match player stats (placeholder)
+func (s *Server) updateMatchPlayerStats(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "updated", "message": "Match stats update coming soon"})
 }
 
 // Admin: Update player stats (placeholder)  
