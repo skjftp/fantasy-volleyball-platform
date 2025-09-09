@@ -867,7 +867,8 @@ func (s *Server) createLeague(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	ctx := context.Background()
-	_, _, err := s.firestoreClient.Collection("leagues").Add(ctx, league)
+	// Use the leagueId as the document ID so we can reference it later
+	_, err := s.firestoreClient.Collection("leagues").Doc(league.LeagueID).Set(ctx, league)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -907,7 +908,8 @@ func (s *Server) createAdminTeam(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	ctx := context.Background()
-	_, _, err := s.firestoreClient.Collection("teams").Add(ctx, team)
+	// Use the teamId as the document ID so we can reference it later
+	_, err := s.firestoreClient.Collection("teams").Doc(team.TeamID).Set(ctx, team)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -947,7 +949,8 @@ func (s *Server) createContestTemplate(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	ctx := context.Background()
-	_, _, err := s.firestoreClient.Collection("contestTemplates").Add(ctx, template)
+	// Use the templateId as the document ID so we can reference it later
+	_, err := s.firestoreClient.Collection("contestTemplates").Doc(template.TemplateID).Set(ctx, template)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
