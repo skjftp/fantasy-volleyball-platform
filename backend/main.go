@@ -35,25 +35,25 @@ type OTPData struct {
 }
 
 type League struct {
-	LeagueID    string    `json:"leagueId" firestore:"leagueId"`
-	Name        string    `json:"name" firestore:"name"`
-	Description string    `json:"description" firestore:"description"`
-	StartDate   time.Time `json:"startDate" firestore:"startDate"`
-	EndDate     time.Time `json:"endDate" firestore:"endDate"`
-	Status      string    `json:"status" firestore:"status"`
-	CreatedAt   time.Time `json:"createdAt" firestore:"createdAt"`
+	LeagueID    string `json:"leagueId" firestore:"leagueId"`
+	Name        string `json:"name" firestore:"name"`
+	Description string `json:"description" firestore:"description"`
+	StartDate   string `json:"startDate" firestore:"startDate"`
+	EndDate     string `json:"endDate" firestore:"endDate"`
+	Status      string `json:"status" firestore:"status"`
+	CreatedAt   string `json:"createdAt" firestore:"createdAt"`
 }
 
 type Team struct {
-	TeamID      string    `json:"teamId" firestore:"teamId"`
-	Name        string    `json:"name" firestore:"name"`
-	Code        string    `json:"code" firestore:"code"`
-	Logo        string    `json:"logo" firestore:"logo"`
-	LeagueID    string    `json:"leagueId" firestore:"leagueId"`
-	HomeCity    string    `json:"homeCity" firestore:"homeCity"`
-	Captain     string    `json:"captain" firestore:"captain"`
-	Coach       string    `json:"coach" firestore:"coach"`
-	CreatedAt   time.Time `json:"createdAt" firestore:"createdAt"`
+	TeamID      string `json:"teamId" firestore:"teamId"`
+	Name        string `json:"name" firestore:"name"`
+	Code        string `json:"code" firestore:"code"`
+	Logo        string `json:"logo" firestore:"logo"`
+	LeagueID    string `json:"leagueId" firestore:"leagueId"`
+	HomeCity    string `json:"homeCity" firestore:"homeCity"`
+	Captain     string `json:"captain" firestore:"captain"`
+	Coach       string `json:"coach" firestore:"coach"`
+	CreatedAt   string `json:"createdAt" firestore:"createdAt"`
 }
 
 type Squad struct {
@@ -63,21 +63,21 @@ type Squad struct {
 	MatchID     string   `json:"matchId" firestore:"matchId"`
 	Starting6   []string `json:"starting6" firestore:"starting6"`
 	Substitutes []string `json:"substitutes" firestore:"substitutes"`
-	CreatedAt   time.Time `json:"createdAt" firestore:"createdAt"`
+	CreatedAt   string   `json:"createdAt" firestore:"createdAt"`
 }
 
 type Match struct {
-	MatchID     string    `json:"matchId" firestore:"matchId"`
-	LeagueID    string    `json:"leagueId" firestore:"leagueId"`
-	Team1ID     string    `json:"team1Id" firestore:"team1Id"`
-	Team2ID     string    `json:"team2Id" firestore:"team2Id"`
-	Team1       TeamInfo  `json:"team1" firestore:"team1"`
-	Team2       TeamInfo  `json:"team2" firestore:"team2"`
-	StartTime   time.Time `json:"startTime" firestore:"startTime"`
-	Status      string    `json:"status" firestore:"status"`
-	Venue       string    `json:"venue" firestore:"venue"`
-	Round       string    `json:"round" firestore:"round"`
-	CreatedAt   time.Time `json:"createdAt" firestore:"createdAt"`
+	MatchID     string   `json:"matchId" firestore:"matchId"`
+	LeagueID    string   `json:"leagueId" firestore:"leagueId"`
+	Team1ID     string   `json:"team1Id" firestore:"team1Id"`
+	Team2ID     string   `json:"team2Id" firestore:"team2Id"`
+	Team1       TeamInfo `json:"team1" firestore:"team1"`
+	Team2       TeamInfo `json:"team2" firestore:"team2"`
+	StartTime   string   `json:"startTime" firestore:"startTime"`
+	Status      string   `json:"status" firestore:"status"`
+	Venue       string   `json:"venue" firestore:"venue"`
+	Round       string   `json:"round" firestore:"round"`
+	CreatedAt   string   `json:"createdAt" firestore:"createdAt"`
 }
 
 type TeamInfo struct {
@@ -96,7 +96,7 @@ type ContestTemplate struct {
 	MaxTeamsPerUser  int     `json:"maxTeamsPerUser" firestore:"maxTeamsPerUser"`
 	WinnerPercentage float64 `json:"winnerPercentage" firestore:"winnerPercentage"`
 	IsGuaranteed     bool    `json:"isGuaranteed" firestore:"isGuaranteed"`
-	CreatedAt        time.Time `json:"createdAt" firestore:"createdAt"`
+	CreatedAt        string  `json:"createdAt" firestore:"createdAt"`
 }
 
 
@@ -292,7 +292,7 @@ func (s *Server) getMatches(w http.ResponseWriter, r *http.Request) {
 		doc.DataTo(&match)
 		
 		// Double-check that match hasn't started yet
-		if time.Now().Before(match.StartTime) {
+		if startTime, err := time.Parse(time.RFC3339, match.StartTime); err == nil && time.Now().Before(startTime) {
 			matches = append(matches, match)
 		}
 	}
@@ -1004,8 +1004,8 @@ func (s *Server) updateLeague(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	leagueId := vars["leagueId"]
 	
-	var updates map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
+	var league League
+	if err := json.NewDecoder(r.Body).Decode(&league); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -1024,25 +1024,8 @@ func (s *Server) updateLeague(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Prepare updates (remove immutable fields)
-	updateData := []firestore.Update{}
-	if name, ok := updates["name"].(string); ok {
-		updateData = append(updateData, firestore.Update{Path: "name", Value: name})
-	}
-	if desc, ok := updates["description"].(string); ok {
-		updateData = append(updateData, firestore.Update{Path: "description", Value: desc})
-	}
-	if startDate, ok := updates["startDate"].(string); ok {
-		updateData = append(updateData, firestore.Update{Path: "startDate", Value: startDate})
-	}
-	if endDate, ok := updates["endDate"].(string); ok {
-		updateData = append(updateData, firestore.Update{Path: "endDate", Value: endDate})
-	}
-	if status, ok := updates["status"].(string); ok {
-		updateData = append(updateData, firestore.Update{Path: "status", Value: status})
-	}
-	
-	_, err = s.firestoreClient.Collection("leagues").Doc(leagueId).Update(ctx, updateData)
+	// Use complete document replacement - this ensures all fields are consistent
+	_, err = s.firestoreClient.Collection("leagues").Doc(leagueId).Set(ctx, league)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

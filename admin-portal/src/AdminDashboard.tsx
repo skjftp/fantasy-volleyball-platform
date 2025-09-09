@@ -85,7 +85,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
 
   const getAuthHeaders = (): Record<string, string> => {
     const token = localStorage.getItem('admin_token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    if (!token) {
+      // Token missing, redirect to login
+      onLogout();
+      return {};
+    }
+    
+    // Check if token is expired (basic check)
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp * 1000 < Date.now()) {
+        // Token expired, redirect to login
+        onLogout();
+        return {};
+      }
+    } catch (error) {
+      // Invalid token, redirect to login
+      onLogout();
+      return {};
+    }
+    
+    return { Authorization: `Bearer ${token}` };
   };
 
   useEffect(() => {
