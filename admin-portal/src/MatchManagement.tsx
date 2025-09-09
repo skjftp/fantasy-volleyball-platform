@@ -595,7 +595,11 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
                         <label className="block text-xs text-gray-600 mb-1">Category</label>
                         <select
                           value={player.category}
-                          onChange={(e) => updatePlayerField(player.matchPlayerId, 'category', e.target.value)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            updatePlayerField(player.matchPlayerId, 'category', e.target.value);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
                           className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="setter">Setter</option>
@@ -613,19 +617,28 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
                           min="6"
                           max="15"
                           value={player.credits}
-                          onChange={(e) => updatePlayerField(player.matchPlayerId, 'credits', parseFloat(e.target.value))}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            updatePlayerField(player.matchPlayerId, 'credits', parseFloat(e.target.value));
+                          }}
+                          onClick={(e) => e.stopPropagation()}
                           className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-center focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
 
                       <div className="flex items-center">
-                        <label className="flex items-center text-sm">
+                        <label 
+                          className="flex items-center text-sm cursor-pointer"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <input
                             type="checkbox"
                             checked={player.isStarting6}
                             onChange={(e) => {
-                              updatePlayerField(player.matchPlayerId, 'isStarting6', e.target.checked);
-                              updatePlayerField(player.matchPlayerId, 'isSubstitute', !e.target.checked);
+                              e.stopPropagation();
+                              const isChecked = e.target.checked;
+                              updatePlayerField(player.matchPlayerId, 'isStarting6', isChecked);
+                              updatePlayerField(player.matchPlayerId, 'isSubstitute', !isChecked);
                             }}
                             className="mr-2"
                           />
