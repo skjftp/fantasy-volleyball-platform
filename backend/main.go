@@ -246,14 +246,20 @@ func main() {
 	// Admin routes (require admin authentication) - Hierarchical structure
 	router.HandleFunc("/api/admin/leagues", server.adminAuthMiddleware(server.createLeague)).Methods("POST")
 	router.HandleFunc("/api/admin/leagues", server.adminAuthMiddleware(server.getLeagues)).Methods("GET")
+	router.HandleFunc("/api/admin/leagues/{leagueId}", server.adminAuthMiddleware(server.updateLeague)).Methods("PUT")
+	router.HandleFunc("/api/admin/leagues/{leagueId}", server.adminAuthMiddleware(server.deleteLeague)).Methods("DELETE")
 	router.HandleFunc("/api/admin/teams", server.adminAuthMiddleware(server.createAdminTeam)).Methods("POST")  
 	router.HandleFunc("/api/admin/teams", server.adminAuthMiddleware(server.getTeams)).Methods("GET")
+	router.HandleFunc("/api/admin/teams/{teamId}", server.adminAuthMiddleware(server.updateTeam)).Methods("PUT")
+	router.HandleFunc("/api/admin/teams/{teamId}", server.adminAuthMiddleware(server.deleteTeam)).Methods("DELETE")
 	router.HandleFunc("/api/admin/squads", server.adminAuthMiddleware(server.createSquad)).Methods("POST")
 	router.HandleFunc("/api/admin/squads/{teamId}", server.adminAuthMiddleware(server.getTeamSquads)).Methods("GET")
 	router.HandleFunc("/api/admin/matches", server.adminAuthMiddleware(server.createMatch)).Methods("POST")
 	router.HandleFunc("/api/admin/matches", server.adminAuthMiddleware(server.getAdminMatches)).Methods("GET")
 	router.HandleFunc("/api/admin/contest-templates", server.adminAuthMiddleware(server.createContestTemplate)).Methods("POST")
 	router.HandleFunc("/api/admin/contest-templates", server.adminAuthMiddleware(server.getContestTemplates)).Methods("GET")
+	router.HandleFunc("/api/admin/contest-templates/{templateId}", server.adminAuthMiddleware(server.updateContestTemplate)).Methods("PUT")
+	router.HandleFunc("/api/admin/contest-templates/{templateId}", server.adminAuthMiddleware(server.deleteContestTemplate)).Methods("DELETE")
 	router.HandleFunc("/api/admin/contests", server.adminAuthMiddleware(server.createContest)).Methods("POST")
 	router.HandleFunc("/api/admin/players", server.adminAuthMiddleware(server.createPlayer)).Methods("POST")
 	router.HandleFunc("/api/admin/players/{playerId}/stats", server.adminAuthMiddleware(server.updatePlayerStats)).Methods("PUT")
@@ -987,6 +993,120 @@ func (s *Server) getTeamSquads(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getAdminMatches(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode([]interface{}{})
+}
+
+// Admin: Update league
+func (s *Server) updateLeague(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	leagueId := vars["leagueId"]
+	
+	var league League
+	if err := json.NewDecoder(r.Body).Decode(&league); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	ctx := context.Background()
+	_, err := s.firestoreClient.Collection("leagues").Doc(leagueId).Set(ctx, league)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
+}
+
+// Admin: Delete league
+func (s *Server) deleteLeague(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	leagueId := vars["leagueId"]
+	
+	ctx := context.Background()
+	_, err := s.firestoreClient.Collection("leagues").Doc(leagueId).Delete(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+}
+
+// Admin: Update team
+func (s *Server) updateTeam(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	teamId := vars["teamId"]
+	
+	var team Team
+	if err := json.NewDecoder(r.Body).Decode(&team); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	ctx := context.Background()
+	_, err := s.firestoreClient.Collection("teams").Doc(teamId).Set(ctx, team)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
+}
+
+// Admin: Delete team
+func (s *Server) deleteTeam(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	teamId := vars["teamId"]
+	
+	ctx := context.Background()
+	_, err := s.firestoreClient.Collection("teams").Doc(teamId).Delete(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+}
+
+// Admin: Update contest template
+func (s *Server) updateContestTemplate(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	templateId := vars["templateId"]
+	
+	var template ContestTemplate
+	if err := json.NewDecoder(r.Body).Decode(&template); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	ctx := context.Background()
+	_, err := s.firestoreClient.Collection("contestTemplates").Doc(templateId).Set(ctx, template)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
+}
+
+// Admin: Delete contest template
+func (s *Server) deleteContestTemplate(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	templateId := vars["templateId"]
+	
+	ctx := context.Background()
+	_, err := s.firestoreClient.Collection("contestTemplates").Doc(templateId).Delete(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
 
 // Admin: Update player stats (placeholder)  

@@ -50,6 +50,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [templates, setTemplates] = useState<ContestTemplate[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editingItem, setEditingItem] = useState<string | null>(null);
 
   // Form states
   const [newLeague, setNewLeague] = useState({
@@ -58,6 +59,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
     startDate: '',
     endDate: ''
   });
+
+  const [editLeague, setEditLeague] = useState<League | null>(null);
 
   const [newTeam, setNewTeam] = useState({
     name: '',
@@ -271,6 +274,124 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
     }
   };
 
+  const handleEditLeague = (league: League) => {
+    setEditLeague(league);
+    setEditingItem(league.leagueId);
+  };
+
+  const handleUpdateLeague = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editLeague) return;
+    
+    setLoading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      const response = await fetch(`${apiUrl}/admin/leagues/${editLeague.leagueId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(editLeague)
+      });
+
+      if (response.ok) {
+        alert('League updated successfully!');
+        setEditLeague(null);
+        setEditingItem(null);
+        fetchLeagues();
+      } else {
+        alert('Failed to update league');
+      }
+    } catch (error) {
+      console.error('Error updating league:', error);
+      alert('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteLeague = async (leagueId: string) => {
+    if (!confirm('Are you sure you want to delete this league? This action cannot be undone.')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      const response = await fetch(`${apiUrl}/admin/leagues/${leagueId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+
+      if (response.ok) {
+        alert('League deleted successfully!');
+        fetchLeagues();
+      } else {
+        alert('Failed to delete league');
+      }
+    } catch (error) {
+      console.error('Error deleting league:', error);
+      alert('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteTeam = async (teamId: string) => {
+    if (!confirm('Are you sure you want to delete this team? This will also remove all associated squads and player assignments.')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      const response = await fetch(`${apiUrl}/admin/teams/${teamId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+
+      if (response.ok) {
+        alert('Team deleted successfully!');
+        fetchTeams();
+      } else {
+        alert('Failed to delete team');
+      }
+    } catch (error) {
+      console.error('Error deleting team:', error);
+      alert('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    if (!confirm('Are you sure you want to delete this contest template?')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      const response = await fetch(`${apiUrl}/admin/contest-templates/${templateId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+
+      if (response.ok) {
+        alert('Contest template deleted successfully!');
+        fetchTemplates();
+      } else {
+        alert('Failed to delete template');
+      }
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      alert('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const tabs = [
     { key: 'leagues' as const, label: '1. Create Leagues', icon: '🏆' },
     { key: 'teams' as const, label: '2. Create Teams', icon: '⚽' },
@@ -411,18 +532,73 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
               <div className="divide-y">
                 {leagues.map((league) => (
                   <div key={league.leagueId} className="p-6 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-gray-800">{league.name}</h4>
-                        <p className="text-sm text-gray-600">{league.description}</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium">{league.status}</div>
-                        <div className="text-xs text-gray-600">
-                          {new Date(league.startDate).toLocaleDateString()} - {new Date(league.endDate).toLocaleDateString()}
+                    {editingItem === league.leagueId ? (
+                      /* Edit Form */
+                      <form onSubmit={handleUpdateLeague} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <input
+                            type="text"
+                            value={editLeague?.name || ''}
+                            onChange={(e) => setEditLeague(editLeague ? {...editLeague, name: e.target.value} : null)}
+                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                            placeholder="League Name"
+                          />
+                          <input
+                            type="text"
+                            value={editLeague?.description || ''}
+                            onChange={(e) => setEditLeague(editLeague ? {...editLeague, description: e.target.value} : null)}
+                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                            placeholder="Description"
+                          />
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            type="submit"
+                            className="bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700"
+                            disabled={loading}
+                          >
+                            {loading ? 'Saving...' : 'Save'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {setEditingItem(null); setEditLeague(null);}}
+                            className="bg-gray-500 text-white px-4 py-2 rounded-md text-sm hover:bg-gray-600"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      /* Display Mode */
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-gray-800">{league.name}</h4>
+                          <p className="text-sm text-gray-600">{league.description}</p>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <div className="text-right">
+                            <div className="text-sm font-medium">{league.status}</div>
+                            <div className="text-xs text-gray-600">
+                              {new Date(league.startDate).toLocaleDateString()} - {new Date(league.endDate).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleEditLeague(league)}
+                              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteLeague(league.leagueId)}
+                              className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -562,9 +738,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
                           <p className="text-sm text-gray-600">{team.homeCity} • Captain: {team.captain}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm text-gray-600">League: {team.leagueId}</div>
-                        <div className="text-xs text-gray-500">Coach: {team.coach}</div>
+                      <div className="flex items-center space-x-4">
+                        <div className="text-right">
+                          <div className="text-sm text-gray-600">League: {team.leagueId}</div>
+                          <div className="text-xs text-gray-500">Coach: {team.coach}</div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => alert('Team editing feature coming soon!')}
+                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTeam(team.teamId)}
+                            className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -701,10 +893,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
                         <h4 className="font-medium text-gray-800">{template.name}</h4>
                         <p className="text-sm text-gray-600">{template.description}</p>
                       </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-green-600">₹{template.prizePool.toLocaleString()}</div>
-                        <div className="text-xs text-gray-600">
-                          Entry: ₹{template.entryFee} • {template.maxSpots.toLocaleString()} spots
+                      <div className="flex items-center space-x-4">
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-green-600">₹{template.prizePool.toLocaleString()}</div>
+                          <div className="text-xs text-gray-600">
+                            Entry: ₹{template.entryFee} • {template.maxSpots.toLocaleString()} spots
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => alert('Template editing feature coming soon!')}
+                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTemplate(template.templateId)}
+                            className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                          >
+                            Delete
+                          </button>
                         </div>
                       </div>
                     </div>
