@@ -203,11 +203,12 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+port, corsHandler(router)))
 }
 
-// Get all matches
+// Get upcoming matches only
 func (s *Server) getMatches(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	
-	iter := s.firestoreClient.Collection("matches").Documents(ctx)
+	// Query for upcoming matches only
+	iter := s.firestoreClient.Collection("matches").Where("status", "==", "upcoming").Documents(ctx)
 	var matches []Match
 	
 	for {
@@ -218,7 +219,11 @@ func (s *Server) getMatches(w http.ResponseWriter, r *http.Request) {
 		
 		var match Match
 		doc.DataTo(&match)
-		matches = append(matches, match)
+		
+		// Double-check that match hasn't started yet
+		if time.Now().Before(match.StartTime) {
+			matches = append(matches, match)
+		}
 	}
 	
 	w.Header().Set("Content-Type", "application/json")

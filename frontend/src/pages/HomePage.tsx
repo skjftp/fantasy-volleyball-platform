@@ -35,19 +35,27 @@ const HomePage: React.FC = () => {
       const data = await response.json();
       
       if (data && Array.isArray(data)) {
-        setMatches(data.map(match => ({
-          ...match,
-          startTime: match.startTime?.seconds ? 
-            new Date(match.startTime.seconds * 1000).toISOString() : 
-            match.startTime
-        })));
+        const upcomingMatches = data
+          .map(match => ({
+            ...match,
+            startTime: match.startTime?.seconds ? 
+              new Date(match.startTime.seconds * 1000).toISOString() : 
+              match.startTime
+          }))
+          .filter(match => {
+            const matchTime = new Date(match.startTime);
+            const now = new Date();
+            return matchTime.getTime() > now.getTime(); // Only show upcoming matches
+          });
+        
+        setMatches(upcomingMatches);
       } else {
         throw new Error('Invalid data format');
       }
     } catch (error) {
       console.error('Error fetching matches:', error);
-      // Mock data for development
-      setMatches([
+      // Mock data for development - only upcoming matches
+      const mockMatches = [
         {
           matchId: 'match_1',
           team1: {
@@ -96,7 +104,16 @@ const HomePage: React.FC = () => {
           status: 'upcoming',
           league: 'Premier Volleyball Championship'
         }
-      ]);
+      ];
+      
+      // Filter to only show upcoming matches
+      const upcomingOnly = mockMatches.filter(match => {
+        const matchTime = new Date(match.startTime);
+        const now = new Date();
+        return matchTime.getTime() > now.getTime();
+      });
+      
+      setMatches(upcomingOnly);
     } finally {
       setLoading(false);
     }
