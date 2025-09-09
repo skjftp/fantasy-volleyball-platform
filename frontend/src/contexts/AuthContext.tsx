@@ -143,27 +143,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Add token to all API requests when user is authenticated
-  useEffect(() => {
-    if (user?.token) {
-      // Store the original request function
-      if (!apiClient.originalRequest) {
-        apiClient.originalRequest = apiClient.request;
-      }
-      
-      // Override the request function to always include auth token
-      apiClient.request = function(endpoint: string, options: RequestInit = {}) {
-        const authOptions = {
-          ...options,
-          headers: {
-            ...options.headers,
-            Authorization: `Bearer ${user.token}`
-          }
-        };
-        return this.originalRequest(endpoint, authOptions);
-      };
-    }
-  }, [user?.token]);
+  // Token is automatically handled by APIClient class
 
   const value: AuthContextType = {
     user,
