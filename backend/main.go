@@ -172,10 +172,14 @@ func main() {
 		handlers.AllowCredentials(),
 	)
 
-	// Authentication routes
+	// User Authentication routes
 	router.HandleFunc("/api/auth/send-otp", server.sendOTP).Methods("POST")
 	router.HandleFunc("/api/auth/verify-otp", server.verifyOTP).Methods("POST")
 	router.HandleFunc("/api/auth/logout", server.logout).Methods("POST")
+	
+	// Admin Authentication routes
+	router.HandleFunc("/api/admin/auth/login", server.adminLogin).Methods("POST")
+	router.HandleFunc("/api/admin/auth/logout", server.adminLogout).Methods("POST")
 
 	// Public routes
 	router.HandleFunc("/api/matches", server.getMatches).Methods("GET")
@@ -188,11 +192,11 @@ func main() {
 	router.HandleFunc("/api/users/{userId}/teams", server.authMiddleware(server.getUserTeams)).Methods("GET")
 	router.HandleFunc("/api/users/{userId}", server.authMiddleware(server.getUserProfile)).Methods("GET")
 	
-	// Admin routes (require authentication)
-	router.HandleFunc("/api/admin/matches", server.authMiddleware(server.createMatch)).Methods("POST")
-	router.HandleFunc("/api/admin/players", server.authMiddleware(server.createPlayer)).Methods("POST")
-	router.HandleFunc("/api/admin/contests", server.authMiddleware(server.createContest)).Methods("POST")
-	router.HandleFunc("/api/admin/scores", server.authMiddleware(server.updatePlayerScores)).Methods("PUT")
+	// Admin routes (require admin authentication)
+	router.HandleFunc("/api/admin/matches", server.adminAuthMiddleware(server.createMatch)).Methods("POST")
+	router.HandleFunc("/api/admin/players", server.adminAuthMiddleware(server.createPlayer)).Methods("POST")
+	router.HandleFunc("/api/admin/contests", server.adminAuthMiddleware(server.createContest)).Methods("POST")
+	router.HandleFunc("/api/admin/scores", server.adminAuthMiddleware(server.updatePlayerScores)).Methods("PUT")
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -682,6 +686,108 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"status": "success",
 		"message": "Logged out successfully",
+	})
+}
+
+// Admin authentication middleware
+func (s *Server) adminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, "Authorization header required", http.StatusUnauthorized)
+			return
+		}
+
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		if tokenString == authHeader {
+			http.Error(w, "Bearer token required", http.StatusUnauthorized)
+			return
+		}
+
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return s.jwtSecret, nil
+		})
+
+		if err != nil || !token.Valid {
+			http.Error(w, "Invalid admin token", http.StatusUnauthorized)
+			return
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			http.Error(w, "Invalid token claims", http.StatusUnauthorized)
+			return
+		}
+
+		// Check if user is admin
+		role, ok := claims["role"].(string)
+		if !ok || role != "admin" {
+			http.Error(w, "Admin access required", http.StatusForbidden)
+			return
+		}
+
+		// Add admin ID to request context
+		ctx := context.WithValue(r.Context(), "adminID", claims["uid"])
+		next.ServeHTTP(w, r.WithContext(ctx))
+	}
+}
+
+// Admin login
+func (s *Server) adminLogin(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Simple hardcoded admin credentials (in production, use proper admin table)
+	if request.Username != "primevadmin" || request.Password != "PrimeV2024!Admin" {
+		http.Error(w, "Invalid admin credentials", http.StatusUnauthorized)
+		return
+	}
+
+	// Generate JWT token with admin role
+	adminID := "admin_primev"
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"uid":   adminID,
+		"role":  "admin",
+		"username": request.Username,
+		"exp":   time.Now().Add(24 * time.Hour * 7).Unix(), // 7 days
+		"iat":   time.Now().Unix(),
+	})
+
+	tokenString, err := token.SignedString(s.jwtSecret)
+	if err != nil {
+		http.Error(w, "Failed to create admin token", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"admin": map[string]interface{}{
+			"uid":      adminID,
+			"username": request.Username,
+			"role":     "admin",
+		},
+		"token": tokenString,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// Admin logout
+func (s *Server) adminLogout(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "success",
+		"message": "Admin logged out successfully",
 	})
 }
 
