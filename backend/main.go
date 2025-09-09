@@ -306,9 +306,10 @@ func main() {
 	router.HandleFunc("/api/admin/team-players/team/{teamId}", server.adminAuthMiddleware(server.getTeamAssociations)).Methods("GET")
 	router.HandleFunc("/api/admin/team-players/{associationId}", server.adminAuthMiddleware(server.deleteTeamPlayer)).Methods("DELETE")
 	
-	// Match-specific players (placeholder endpoints)
+	// Match-specific players 
 	router.HandleFunc("/api/admin/match-players", server.adminAuthMiddleware(server.createMatchPlayer)).Methods("POST")
 	router.HandleFunc("/api/admin/match-players/match/{matchId}", server.adminAuthMiddleware(server.getMatchPlayers)).Methods("GET")
+	router.HandleFunc("/api/admin/match-players/{matchPlayerId}", server.adminAuthMiddleware(server.updateMatchPlayer)).Methods("PUT")
 	router.HandleFunc("/api/admin/match-players/{matchPlayerId}/stats", server.adminAuthMiddleware(server.updateMatchPlayerStats)).Methods("PUT")
 
 	port := os.Getenv("PORT")
@@ -1488,6 +1489,42 @@ func (s *Server) getMatchPlayers(w http.ResponseWriter, r *http.Request) {
 	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(matchPlayers)
+}
+
+// Admin: Update match player
+func (s *Server) updateMatchPlayer(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	matchPlayerId := vars["matchPlayerId"]
+	
+	var matchPlayer MatchPlayer
+	if err := json.NewDecoder(r.Body).Decode(&matchPlayer); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	ctx := context.Background()
+	
+	// Check if document exists first
+	doc, err := s.firestoreClient.Collection("matchPlayers").Doc(matchPlayerId).Get(ctx)
+	if err != nil {
+		http.Error(w, "Match player not found", http.StatusNotFound)
+		return
+	}
+	
+	if !doc.Exists() {
+		http.Error(w, "Match player not found", http.StatusNotFound)
+		return
+	}
+	
+	// Use complete document replacement for consistency
+	_, err = s.firestoreClient.Collection("matchPlayers").Doc(matchPlayerId).Set(ctx, matchPlayer)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
 }
 
 // Admin: Update match player stats (placeholder)
