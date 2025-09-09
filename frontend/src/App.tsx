@@ -7,7 +7,8 @@ import MatchDetailPage from './pages/MatchDetailPage';
 import TeamCreatePage from './pages/TeamCreatePage';
 import CaptainSelectionPage from './pages/CaptainSelectionPage';
 import ContestsPage from './pages/ContestsPage';
-import MyTeamsPage from './pages/MyTeamsPage';
+import MyContestsPage from './pages/MyContestsPage';
+import MyProfilePage from './pages/MyProfilePage';
 import AdminPanel from './pages/AdminPanel';
 import LoadingSpinner from './components/LoadingSpinner';
 
@@ -95,16 +96,25 @@ function AppRoutes() {
           />
           
           <Route 
-            path="/my-teams" 
+            path="/my-contests" 
             element={
               <ProtectedRoute>
-                <MyTeamsPage />
+                <MyContestsPage />
               </ProtectedRoute>
             } 
           />
           
           <Route 
-            path="/admin" 
+            path="/my-profile" 
+            element={
+              <ProtectedRoute>
+                <MyProfilePage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/admin-secret-panel-xyz" 
             element={
               <ProtectedRoute>
                 <AdminPanel />

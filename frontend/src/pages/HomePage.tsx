@@ -22,7 +22,7 @@ interface Match {
 const HomePage: React.FC = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-  const { userProfile, signOut } = useAuth();
+  const { userProfile } = useAuth();
 
   useEffect(() => {
     fetchMatches();
@@ -147,8 +147,8 @@ const HomePage: React.FC = () => {
       {/* Header */}
       <header className="bg-red-600 text-white">
         <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+          <div className="text-center">
+            <div className="flex items-center justify-center space-x-3">
               <div className="bg-white rounded-lg p-2">
                 <span className="text-red-600 font-bold text-lg">PV</span>
               </div>
@@ -157,48 +157,24 @@ const HomePage: React.FC = () => {
                 <p className="text-red-100 text-sm">"Play Smart, Win Big"</p>
               </div>
             </div>
-            
-            <button
-              onClick={signOut}
-              className="bg-red-700 px-3 py-2 rounded-lg text-sm hover:bg-red-800 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
-              </svg>
-            </button>
           </div>
         </div>
       </header>
 
-      {/* Sports Navigation */}
+      {/* Volleyball Focus Header */}
       <div className="bg-red-600 text-white">
         <div className="container">
-          <div className="flex justify-around py-4">
-            <div className="flex flex-col items-center space-y-2 opacity-50">
-              <div className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 2L3 7v11a2 2 0 002 2h4v-8h2v8h4a2 2 0 002-2V7l-7-5z" />
-                </svg>
-              </div>
-              <span className="text-xs font-medium">CRICKET</span>
-            </div>
-            
-            <div className="flex flex-col items-center space-y-2 opacity-50">
-              <div className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 2L3 7v11a2 2 0 002 2h4v-8h2v8h4a2 2 0 002-2V7l-7-5z" />
-                </svg>
-              </div>
-              <span className="text-xs font-medium">Kabaddi</span>
-            </div>
-            
-            <div className="flex flex-col items-center space-y-2">
+          <div className="text-center py-4">
+            <div className="flex items-center justify-center space-x-3">
               <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" />
                 </svg>
               </div>
-              <span className="text-xs font-medium">Volleyball</span>
+              <div>
+                <h2 className="text-xl font-bold">Volleyball Fantasy</h2>
+                <p className="text-red-100 text-sm">Create your dream volleyball team</p>
+              </div>
             </div>
           </div>
         </div>
@@ -347,10 +323,10 @@ const HomePage: React.FC = () => {
                   <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
                 </svg>
               </div>
-              <span className="text-xs font-medium text-red-600">Contests</span>
+              <span className="text-xs font-medium text-red-600">Home</span>
             </Link>
             
-            <Link to="/my-teams" className="flex flex-col items-center space-y-1 py-2">
+            <Link to="/my-contests" className="flex flex-col items-center space-y-1 py-2">
               <div className="p-2">
                 <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -359,22 +335,13 @@ const HomePage: React.FC = () => {
               <span className="text-xs text-gray-600">My Contests</span>
             </Link>
             
-            <Link to="/my-teams" className="flex flex-col items-center space-y-1 py-2">
+            <Link to="/my-profile" className="flex flex-col items-center space-y-1 py-2">
               <div className="p-2">
                 <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                  <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
                 </svg>
               </div>
-              <span className="text-xs text-gray-600">My Teams</span>
-            </Link>
-            
-            <Link to="/admin" className="flex flex-col items-center space-y-1 py-2">
-              <div className="p-2">
-                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <span className="text-xs text-gray-600">More</span>
+              <span className="text-xs text-gray-600">My Profile</span>
             </Link>
           </div>
         </div>
