@@ -208,6 +208,7 @@ func main() {
 	corsHandler := handlers.CORS(
 		handlers.AllowedOrigins([]string{
 			"https://fantasy-volleyball.netlify.app",
+			"https://primev-admin.netlify.app",
 			"http://localhost:5173",
 			"http://localhost:3000",
 			"*",
@@ -814,7 +815,7 @@ func (s *Server) adminLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Simple hardcoded admin credentials (in production, use proper admin table)
-	if request.Username != "primevadmin" || request.Password != "PrimeV2024!Admin" {
+	if request.Username != "primevadmin" || request.Password != "PrimeV2024Admin" {
 		http.Error(w, "Invalid admin credentials", http.StatusUnauthorized)
 		return
 	}
