@@ -102,17 +102,45 @@ const HomePage: React.FC = () => {
     }
   };
 
-  const formatTimeLeft = (startTime: string) => {
-    const now = new Date();
-    const matchTime = new Date(startTime);
-    const diff = matchTime.getTime() - now.getTime();
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-    if (diff <= 0) return 'Started';
+  // Update timer every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTimeLeft = (startTime: string) => {
+    const matchTime = new Date(startTime);
+    const diff = matchTime.getTime() - currentTime.getTime();
+
+    if (diff <= 0) {
+      return {
+        status: 'live',
+        timeLeft: 'LIVE',
+        matchTime: matchTime.toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        })
+      };
+    }
 
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
-    return `${hours}h ${minutes}m Left`;
+    return {
+      status: 'upcoming',
+      timeLeft: `${hours}h ${minutes}m Left`,
+      matchTime: matchTime.toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    };
   };
 
   if (loading) {
@@ -186,71 +214,75 @@ const HomePage: React.FC = () => {
               <p className="text-gray-600">Check back later for upcoming volleyball matches!</p>
             </div>
           ) : (
-            matches.map((match) => (
-              <Link
-                key={match.matchId}
-                to={`/match/${match.matchId}/contests`}
-                className="block"
-              >
-                <div className="bg-white rounded-lg p-4 shadow-sm border hover:shadow-md transition-shadow">
-                  {/* League and Time */}
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                      {match.league}
-                    </span>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-medium text-orange-600 bg-orange-100 px-2 py-1 rounded">
-                        {formatTimeLeft(match.startTime)}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {new Date(match.startTime).toLocaleTimeString('en-IN', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          hour12: true
-                        })}
+            matches.map((match) => {
+              const timeInfo = formatTimeLeft(match.startTime);
+              
+              return (
+                <Link
+                  key={match.matchId}
+                  to={`/match/${match.matchId}/contests`}
+                  className="block"
+                >
+                  <div className="bg-white rounded-lg p-4 shadow-sm border hover:shadow-md transition-shadow">
+                    {/* Tournament Name - Centered */}
+                    <div className="text-center mb-3">
+                      <span className="text-xs font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                        {match.league}
                       </span>
                     </div>
-                  </div>
 
-                  {/* Teams */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3 flex-1">
-                      <img
-                        src={match.team1.logo}
-                        alt={match.team1.name}
-                        className="w-10 h-10 rounded-full bg-gray-100"
-                      />
-                      <div>
-                        <p className="font-medium text-gray-800">{match.team1.code}</p>
-                        <p className="text-xs text-gray-600 truncate max-w-20">
-                          {match.team1.name}
-                        </p>
+                    {/* Match Time and Timer - Above VS */}
+                    <div className="text-center mb-3">
+                      <div className="text-sm font-medium text-gray-800">
+                        {timeInfo.matchTime}
+                      </div>
+                      <div className={`text-xs font-medium px-2 py-1 rounded mt-1 ${
+                        timeInfo.status === 'live' 
+                          ? 'text-red-600 bg-red-100' 
+                          : 'text-orange-600 bg-orange-100'
+                      }`}>
+                        {timeInfo.timeLeft}
                       </div>
                     </div>
 
-                    <div className="flex-shrink-0 mx-4">
-                      <span className="text-sm font-medium text-gray-600">VS</span>
-                    </div>
-
-                    <div className="flex items-center space-x-3 flex-1 flex-row-reverse">
-                      <img
-                        src={match.team2.logo}
-                        alt={match.team2.name}
-                        className="w-10 h-10 rounded-full bg-gray-100"
-                      />
-                      <div className="text-right">
-                        <p className="font-medium text-gray-800">{match.team2.code}</p>
-                        <p className="text-xs text-gray-600 truncate max-w-20">
-                          {match.team2.name}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Contest Info */}
-                  <div className="mt-4 pt-3 border-t border-gray-100">
+                    {/* Teams */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3 flex-1">
+                        <img
+                          src={match.team1.logo}
+                          alt={match.team1.name}
+                          className="w-10 h-10 rounded-full bg-gray-100"
+                        />
+                        <div>
+                          <p className="font-medium text-gray-800">{match.team1.code}</p>
+                          <p className="text-xs text-gray-600 truncate max-w-20">
+                            {match.team1.name}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex-shrink-0 mx-4">
+                        <span className="text-sm font-medium text-gray-600">VS</span>
+                      </div>
+
+                      <div className="flex items-center space-x-3 flex-1 flex-row-reverse">
+                        <img
+                          src={match.team2.logo}
+                          alt={match.team2.name}
+                          className="w-10 h-10 rounded-full bg-gray-100"
+                        />
+                        <div className="text-right">
+                          <p className="font-medium text-gray-800">{match.team2.code}</p>
+                          <p className="text-xs text-gray-600 truncate max-w-20">
+                            {match.team2.name}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Contest Info */}
+                    <div className="mt-4 pt-3 border-t border-gray-100">
+                      <div className="flex items-center justify-center space-x-2">
                         <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded">
                           Free Giveaway Available
                         </span>
@@ -258,14 +290,11 @@ const HomePage: React.FC = () => {
                           ₹75,000
                         </span>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-600">Tap to create team</p>
-                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))
+                </Link>
+              );
+            })
           )}
         </div>
       </main>
