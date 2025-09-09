@@ -1,49 +1,73 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-interface JoinedContest {
-  contestId: string;
-  contestName: string;
+interface JoinedMatch {
   matchId: string;
-  teamName: string;
-  prizePool: number;
-  rank: number;
-  totalPoints: number;
-  status: 'upcoming' | 'live' | 'completed';
+  team1: { name: string; code: string; logo: string };
+  team2: { name: string; code: string; logo: string };
+  startTime: string;
+  league: string;
+  joinedContests: number;
+  totalTeams: number;
 }
 
 const MyContestsPage: React.FC = () => {
   const { user } = useAuth();
-  const [joinedContests, setJoinedContests] = useState<JoinedContest[]>([]);
+  const { matchId } = useParams<{ matchId: string }>();
+  const location = useLocation();
+  const [joinedMatches, setJoinedMatches] = useState<JoinedMatch[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchJoinedContests();
-  }, []);
+  // Check if we're in match-specific context
+  const isMatchSpecific = location.pathname.includes('/match/');
 
-  const fetchJoinedContests = async () => {
+  useEffect(() => {
+    fetchJoinedMatches();
+  }, [matchId]);
+
+  const fetchJoinedMatches = async () => {
     try {
       if (!user?.uid) return;
 
-      // Mock data showing joined contests
-      setJoinedContests([
+      // Mock data showing matches where user has joined contests
+      setJoinedMatches([
         {
-          contestId: 'contest_1',
-          contestName: 'PrimeV Mega Contest',
           matchId: 'match_1',
-          teamName: 'T1',
-          prizePool: 150000,
-          rank: 0,
-          totalPoints: 0,
-          status: 'upcoming'
+          team1: {
+            name: 'Mumbai Thunder',
+            code: 'MUM',
+            logo: 'https://via.placeholder.com/40x40/FF6B35/FFFFFF?text=MUM'
+          },
+          team2: {
+            name: 'Delhi Dynamos',
+            code: 'DEL',
+            logo: 'https://via.placeholder.com/40x40/004E89/FFFFFF?text=DEL'
+          },
+          startTime: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+          league: 'Pro Volleyball League',
+          joinedContests: 2,
+          totalTeams: 3
         }
       ]);
     } catch (error) {
-      console.error('Error fetching joined contests:', error);
+      console.error('Error fetching joined matches:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatTimeLeft = (startTime: string) => {
+    const now = new Date();
+    const matchTime = new Date(startTime);
+    const diff = matchTime.getTime() - now.getTime();
+
+    if (diff <= 0) return 'LIVE';
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    return `${hours}h ${minutes}m Left`;
   };
 
   if (loading) {
@@ -70,7 +94,7 @@ const MyContestsPage: React.FC = () => {
 
       {/* Content */}
       <main className="container py-4">
-        {joinedContests.length === 0 ? (
+        {joinedMatches.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-10 h-10 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -94,79 +118,153 @@ const MyContestsPage: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Joined with team section */}
-            <div className="bg-white rounded-lg border shadow-sm">
-              <div className="p-4 border-b bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-gray-800">Joined with 1 team</h3>
-                  <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </div>
-              </div>
-              
-              {joinedContests.map((contest) => (
-                <div key={contest.contestId} className="p-4 border-b last:border-b-0">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-gray-800">{contest.contestName}</h4>
-                    <div className="bg-red-600 text-white w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold">
-                      {contest.teamName}
-                    </div>
+            {/* List of matches where user has joined contests */}
+            {joinedMatches.map((match) => (
+              <Link
+                key={match.matchId}
+                to={`/match/${match.matchId}/contests`}
+                className="block"
+              >
+                <div className="bg-white rounded-lg p-4 shadow-sm border hover:shadow-md transition-shadow">
+                  {/* Tournament Name - Centered */}
+                  <div className="text-center mb-3">
+                    <span className="text-xs font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                      {match.league}
+                    </span>
                   </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
-                      Prize Pool: ₹{contest.prizePool.toLocaleString()}
-                    </div>
+
+                  {/* Match Time and Timer */}
+                  <div className="text-center mb-3">
                     <div className="text-sm font-medium text-gray-800">
-                      {contest.totalPoints} Points
+                      {new Date(match.startTime).toLocaleTimeString('en-IN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                      })}
+                    </div>
+                    <div className="text-xs font-medium text-orange-600 bg-orange-100 px-2 py-1 rounded mt-1">
+                      {formatTimeLeft(match.startTime)}
                     </div>
                   </div>
-                  
-                  {contest.rank > 0 && (
-                    <div className="mt-2 text-sm">
-                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
-                        Rank #{contest.rank}
-                      </span>
+
+                  {/* Teams */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3 flex-1">
+                      <img
+                        src={match.team1.logo}
+                        alt={match.team1.name}
+                        className="w-10 h-10 rounded-full bg-gray-100"
+                      />
+                      <div>
+                        <p className="font-medium text-gray-800">{match.team1.code}</p>
+                        <p className="text-xs text-gray-600 truncate max-w-20">
+                          {match.team1.name}
+                        </p>
+                      </div>
                     </div>
-                  )}
+
+                    <div className="flex-shrink-0 mx-4">
+                      <span className="text-sm font-medium text-gray-600">VS</span>
+                    </div>
+
+                    <div className="flex items-center space-x-3 flex-1 flex-row-reverse">
+                      <img
+                        src={match.team2.logo}
+                        alt={match.team2.name}
+                        className="w-10 h-10 rounded-full bg-gray-100"
+                      />
+                      <div className="text-right">
+                        <p className="font-medium text-gray-800">{match.team2.code}</p>
+                        <p className="text-xs text-gray-600 truncate max-w-20">
+                          {match.team2.name}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contest Status */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-green-800">
+                        Joined {match.joinedContests} contests with {match.totalTeams} teams
+                      </div>
+                      <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
+              </Link>
+            ))}
           </div>
         )}
       </main>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation - Context Aware */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
         <div className="container py-2">
           <div className="flex justify-around">
-            <Link to="/" className="flex flex-col items-center space-y-1 py-2">
-              <div className="p-2">
-                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-                </svg>
-              </div>
-              <span className="text-xs text-gray-600">Contests</span>
-            </Link>
-            
-            <Link to="/my-contests" className="flex flex-col items-center space-y-1 py-2">
-              <div className="bg-red-600 rounded-full p-2">
-                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-                </svg>
-              </div>
-              <span className="text-xs font-medium text-red-600">My Contests(1)</span>
-            </Link>
-            
-            <Link to="/my-teams" className="flex flex-col items-center space-y-1 py-2">
-              <div className="p-2">
-                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
-                </svg>
-              </div>
-              <span className="text-xs text-gray-600">My Teams(1)</span>
-            </Link>
+            {isMatchSpecific ? (
+              // Match-specific navigation
+              <>
+                <Link to={`/match/${matchId}/contests`} className="flex flex-col items-center space-y-1 py-2">
+                  <div className="p-2">
+                    <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs text-gray-600">Contests</span>
+                </Link>
+                
+                <div className="flex flex-col items-center space-y-1 py-2">
+                  <div className="bg-red-600 rounded-full p-2">
+                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-medium text-red-600">My Contests(1)</span>
+                </div>
+                
+                <Link to={`/match/${matchId}/my-teams`} className="flex flex-col items-center space-y-1 py-2">
+                  <div className="p-2">
+                    <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs text-gray-600">My Teams(1)</span>
+                </Link>
+              </>
+            ) : (
+              // Main navigation
+              <>
+                <Link to="/" className="flex flex-col items-center space-y-1 py-2">
+                  <div className="p-2">
+                    <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10.707 2.293a1 1 0 00-1.414 0l-9 9a1 1 0 001.414 1.414L2 12.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-4.586l.293.293a1 1 0 001.414-1.414l-9-9z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs text-gray-600">Home</span>
+                </Link>
+                
+                <div className="flex flex-col items-center space-y-1 py-2">
+                  <div className="bg-red-600 rounded-full p-2">
+                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-medium text-red-600">My Contests</span>
+                </div>
+                
+                <Link to="/my-profile" className="flex flex-col items-center space-y-1 py-2">
+                  <div className="p-2">
+                    <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs text-gray-600">My Profile</span>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>

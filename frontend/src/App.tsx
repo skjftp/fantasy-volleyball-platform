@@ -115,6 +115,24 @@ function AppRoutes() {
           />
           
           <Route 
+            path="/match/:matchId/my-contests" 
+            element={
+              <ProtectedRoute>
+                <MyContestsPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/match/:matchId/my-teams" 
+            element={
+              <ProtectedRoute>
+                <MyTeamsPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
             path="/my-profile" 
             element={
               <ProtectedRoute>
