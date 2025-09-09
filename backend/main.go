@@ -155,9 +155,21 @@ func main() {
 
 	// CORS middleware
 	corsHandler := handlers.CORS(
-		handlers.AllowedOrigins([]string{"*"}),
+		handlers.AllowedOrigins([]string{
+			"https://fantasy-volleyball.netlify.app",
+			"http://localhost:5173",
+			"http://localhost:3000",
+			"*",
+		}),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
-		handlers.AllowedHeaders([]string{"*"}),
+		handlers.AllowedHeaders([]string{
+			"Content-Type", 
+			"Authorization", 
+			"X-Requested-With",
+			"Accept",
+			"Origin",
+		}),
+		handlers.AllowCredentials(),
 	)
 
 	// Authentication routes
