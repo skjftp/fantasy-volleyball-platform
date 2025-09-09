@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import PlayerManagement from './PlayerManagement';
+import SquadAssignment from './SquadAssignment';
 
 interface Admin {
   uid: string;
@@ -1061,60 +1063,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
 
         {/* Step 3: Create Players */}
         {activeTab === 'players' && (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">
-              Step 3: Create Players (Master Database)
-            </h2>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <div className="flex items-start space-x-3">
-                <div className="bg-blue-600 rounded-full p-1">
-                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="font-medium text-blue-800">Player Management Workflow</h4>
-                  <p className="text-sm text-blue-600 mt-1">
-                    1. <strong>Create Players:</strong> Add unique players with basic info (name, photo, default position)<br/>
-                    2. <strong>Assign to Teams:</strong> Link players to teams for specific seasons<br/>
-                    3. <strong>Set Match Squads:</strong> Configure player credits/categories per match<br/>
-                    4. <strong>Update Stats:</strong> Modify match-specific performance data
-                  </p>
-                </div>
-              </div>
-            </div>
-            <p className="text-gray-600 text-center py-8">
-              Players management interface will be implemented here.<br/>
-              This will manage the master player database with unique players.
-            </p>
-          </div>
+          <PlayerManagement 
+            getAuthHeaders={getAuthHeaders}
+            loading={loading}
+            setLoading={setLoading}
+          />
         )}
 
         {/* Step 4: Assign Squads (Team-Player Associations) */}
         {activeTab === 'squads' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6">
-                Step 4: Assign Players to Teams
-              </h2>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                <div className="flex items-start space-x-3">
-                  <div className="bg-yellow-600 rounded-full p-1">
-                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-yellow-800">Schema Update Required</h4>
-                    <p className="text-sm text-yellow-600 mt-1">
-                      The player schema is being restructured for better normalization.<br/>
-                      This tab will allow linking existing players to teams for specific seasons.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <SquadAssignment 
+            teams={teams}
+            leagues={leagues}
+            getAuthHeaders={getAuthHeaders}
+            loading={loading}
+            setLoading={setLoading}
+          />
         )}
 
         {activeTab === 'matches' && (
