@@ -10,7 +10,6 @@ import ContestsPage from './pages/ContestsPage';
 import MyContestsPage from './pages/MyContestsPage';
 import MyTeamsPage from './pages/MyTeamsPage';
 import MyProfilePage from './pages/MyProfilePage';
-import AdminPanel from './pages/AdminPanel';
 import LoadingSpinner from './components/LoadingSpinner';
 
 // Protected Route Component
@@ -137,15 +136,6 @@ function AppRoutes() {
             element={
               <ProtectedRoute>
                 <MyProfilePage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/admin-secret-panel-xyz" 
-            element={
-              <ProtectedRoute>
-                <AdminPanel />
               </ProtectedRoute>
             } 
           />
