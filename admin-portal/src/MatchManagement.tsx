@@ -103,13 +103,22 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
   const fetchMatchPlayers = async (matchId: string) => {
     try {
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
-      const response = await fetch(`${apiUrl}/admin/match-players/match/${matchId}`, {
+      const response = await fetch(`${apiUrl}/admin/match-squads/match/${matchId}`, {
         headers: getAuthHeaders()
       });
       
       if (response.ok) {
-        const data = await response.json();
-        setMatchPlayers(data || []);
+        const squadData = await response.json();
+        if (squadData.team1Players || squadData.team2Players) {
+          // Convert squad data to flat player array for UI compatibility
+          const allPlayers = [
+            ...(squadData.team1Players || []).map((p: any) => ({...p, teamCode: squadData.team1Code || 'T1'})),
+            ...(squadData.team2Players || []).map((p: any) => ({...p, teamCode: squadData.team2Code || 'T2'}))
+          ];
+          setMatchPlayers(allPlayers);
+        } else {
+          setMatchPlayers([]);
+        }
       }
     } catch (error) {
       console.error('Error fetching match players:', error);
@@ -187,7 +196,7 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
     setHasUnsavedChanges(true);
   };
 
-  // Save all changed players
+  // Save all changed players (single document update)
   const handleSaveAllChanges = async () => {
     if (Object.keys(editingPlayers).length === 0) {
       alert('No changes to save');
@@ -197,26 +206,48 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
     setLoading(true);
     try {
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
-      let savedCount = 0;
+      const match = matches.find(m => m.matchId === selectedMatchId);
+      if (!match) return;
 
-      for (const [matchPlayerId, playerData] of Object.entries(editingPlayers)) {
-        const response = await fetch(`${apiUrl}/admin/match-players/${matchPlayerId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeaders()
-          },
-          body: JSON.stringify(playerData)
-        });
+      // Separate updated players by team
+      const updatedTeam1Players: any[] = [];
+      const updatedTeam2Players: any[] = [];
 
-        if (response.ok) {
-          savedCount++;
+      matchPlayers.forEach(player => {
+        if (match.team1Id && player.teamCode === teams.find(t => t.teamId === match.team1Id)?.code) {
+          updatedTeam1Players.push(player);
+        } else if (match.team2Id && player.teamCode === teams.find(t => t.teamId === match.team2Id)?.code) {
+          updatedTeam2Players.push(player);
         }
-      }
+      });
 
-      alert(`Successfully saved changes for ${savedCount} players!`);
-      setEditingPlayers({});
-      setHasUnsavedChanges(false);
+      // Create complete squad document
+      const matchSquadData = {
+        matchSquadId: `squad_${selectedMatchId}`,
+        matchId: selectedMatchId,
+        team1Id: match.team1Id,
+        team2Id: match.team2Id,
+        team1Players: updatedTeam1Players,
+        team2Players: updatedTeam2Players,
+        updatedAt: new Date().toISOString()
+      };
+
+      const response = await fetch(`${apiUrl}/admin/match-squads/match/${selectedMatchId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(matchSquadData)
+      });
+
+      if (response.ok) {
+        alert(`Successfully saved all squad changes in single document!`);
+        setEditingPlayers({});
+        setHasUnsavedChanges(false);
+      } else {
+        throw new Error('Failed to save squad changes');
+      }
     } catch (error) {
       console.error('Error saving changes:', error);
       alert('Error saving changes. Please try again.');
@@ -266,8 +297,10 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
         return;
       }
 
-      // Create match players from team assignments
-      let createdCount = 0;
+      // Separate players by team
+      const assignTeam1Players: any[] = [];
+      const assignTeam2Players: any[] = [];
+
       for (const teamPlayer of allTeamPlayers) {
         // Fetch player details from master database
         const playerResponse = await fetch(`${apiUrl}/admin/players/${teamPlayer.playerId}`, {
@@ -276,47 +309,58 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
 
         if (playerResponse.ok) {
           const playerData = await playerResponse.json();
-          const teamInfo = teams.find(t => t.teamId === teamPlayer.teamId);
-
-          const matchPlayerData = {
-            matchPlayerId: `mp_${matchId}_${teamPlayer.playerId}`,
+          
+          const squadPlayerData = {
             playerId: teamPlayer.playerId,
-            matchId: matchId,
-            teamId: teamPlayer.teamId,
             playerName: playerData.name,
             playerImageUrl: playerData.imageUrl,
-            teamCode: teamInfo?.code || '',
             category: playerData.defaultCategory || 'universal',
             credits: playerData.defaultCredits || 8.0,
-            isStarting6: teamPlayer.role === 'captain' || Math.random() > 0.3, // Random starting assignment
-            isSubstitute: false,
+            isStarting6: teamPlayer.role === 'captain' || Math.random() > 0.3,
+            jerseyNumber: teamPlayer.jerseyNumber || 0,
             lastMatchPoints: 0,
             selectionPercentage: 50.0,
             liveStats: {
               attacks: 0, aces: 0, blocks: 0, receptionsSuccess: 0, receptionErrors: 0,
               setsPlayed: [], setsAsStarter: [], setsAsSubstitute: [], totalPoints: 0
-            },
-            createdAt: new Date().toISOString()
+            }
           };
 
-          // Create match player
-          const createResponse = await fetch(`${apiUrl}/admin/match-players`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...getAuthHeaders()
-            },
-            body: JSON.stringify(matchPlayerData)
-          });
-
-          if (createResponse.ok) {
-            createdCount++;
+          // Add to appropriate team
+          if (teamPlayer.teamId === match.team1Id) {
+            assignTeam1Players.push(squadPlayerData);
+          } else if (teamPlayer.teamId === match.team2Id) {
+            assignTeam2Players.push(squadPlayerData);
           }
         }
       }
 
-      alert(`Successfully assigned ${createdCount} players to the match!`);
-      fetchMatchPlayers(matchId);
+      // Create single match squad document
+      const matchSquadData = {
+        matchSquadId: `squad_${matchId}`,
+        matchId: matchId,
+        team1Id: match.team1Id,
+        team2Id: match.team2Id,
+        team1Players: assignTeam1Players,
+        team2Players: assignTeam2Players,
+        createdAt: new Date().toISOString()
+      };
+
+      const createResponse = await fetch(`${apiUrl}/admin/match-squads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(matchSquadData)
+      });
+
+      if (createResponse.ok) {
+        alert(`Successfully assigned ${assignTeam1Players.length + assignTeam2Players.length} players to the match in a single squad document!`);
+        fetchMatchPlayers(matchId);
+      } else {
+        throw new Error('Failed to create match squad');
+      }
     } catch (error) {
       console.error('Error auto-assigning squad:', error);
       alert('Error assigning squad. Please try again.');
