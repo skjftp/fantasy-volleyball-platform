@@ -268,102 +268,27 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
   const handleAutoAssignSquad = async (matchId: string) => {
     if (!matchId) return;
 
-    const match = matches.find(m => m.matchId === matchId);
-    if (!match) return;
-
     setLoading(true);
     try {
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
       
-      // Fetch team players for both teams
-      const team1PlayersResponse = await fetch(`${apiUrl}/admin/team-players/team/${match.team1Id}`, {
-        headers: getAuthHeaders()
-      });
-      const team2PlayersResponse = await fetch(`${apiUrl}/admin/team-players/team/${match.team2Id}`, {
-        headers: getAuthHeaders()
-      });
-
-      if (!team1PlayersResponse.ok || !team2PlayersResponse.ok) {
-        throw new Error('Failed to fetch team players');
-      }
-
-      const team1Players = await team1PlayersResponse.json();
-      const team2Players = await team2PlayersResponse.json();
-      
-      const allTeamPlayers = [...team1Players, ...team2Players];
-
-      if (allTeamPlayers.length === 0) {
-        alert('No team players found. Please assign players to teams first in Step 4.');
-        return;
-      }
-
-      // Separate players by team
-      const assignTeam1Players: any[] = [];
-      const assignTeam2Players: any[] = [];
-
-      for (const teamPlayer of allTeamPlayers) {
-        // Fetch player details from master database
-        const playerResponse = await fetch(`${apiUrl}/admin/players/${teamPlayer.playerId}`, {
-          headers: getAuthHeaders()
-        });
-
-        if (playerResponse.ok) {
-          const playerData = await playerResponse.json();
-          
-          const squadPlayerData = {
-            playerId: teamPlayer.playerId,
-            playerName: playerData.name,
-            playerImageUrl: playerData.imageUrl,
-            category: playerData.defaultCategory || 'universal',
-            credits: playerData.defaultCredits || 8.0,
-            isStarting6: teamPlayer.role === 'captain' || Math.random() > 0.3,
-            jerseyNumber: teamPlayer.jerseyNumber || 0,
-            lastMatchPoints: 0,
-            selectionPercentage: 50.0,
-            liveStats: {
-              attacks: 0, aces: 0, blocks: 0, receptionsSuccess: 0, receptionErrors: 0,
-              setsPlayed: [], setsAsStarter: [], setsAsSubstitute: [], totalPoints: 0
-            }
-          };
-
-          // Add to appropriate team
-          if (teamPlayer.teamId === match.team1Id) {
-            assignTeam1Players.push(squadPlayerData);
-          } else if (teamPlayer.teamId === match.team2Id) {
-            assignTeam2Players.push(squadPlayerData);
-          }
-        }
-      }
-
-      // Create single match squad document
-      const matchSquadData = {
-        matchSquadId: `squad_${matchId}`,
-        matchId: matchId,
-        team1Id: match.team1Id,
-        team2Id: match.team2Id,
-        team1Players: assignTeam1Players,
-        team2Players: assignTeam2Players,
-        createdAt: new Date().toISOString()
-      };
-
-      const createResponse = await fetch(`${apiUrl}/admin/match-squads`, {
+      // Single backend call to auto-assign squad
+      const response = await fetch(`${apiUrl}/admin/match-squads/match/${matchId}/auto-assign`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        },
-        body: JSON.stringify(matchSquadData)
+        headers: getAuthHeaders()
       });
 
-      if (createResponse.ok) {
-        alert(`Successfully assigned ${assignTeam1Players.length + assignTeam2Players.length} players to the match in a single squad document!`);
+      if (response.ok) {
+        const result = await response.json();
+        alert(result.message || 'Squad auto-assigned successfully!');
         fetchMatchPlayers(matchId);
       } else {
-        throw new Error('Failed to create match squad');
+        const errorText = await response.text();
+        alert(`Error: ${errorText}`);
       }
     } catch (error) {
       console.error('Error auto-assigning squad:', error);
-      alert('Error assigning squad. Please try again.');
+      alert('Network error during auto-assign.');
     } finally {
       setLoading(false);
     }

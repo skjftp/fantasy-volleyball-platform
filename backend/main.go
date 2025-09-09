@@ -317,8 +317,8 @@ func main() {
 	router.HandleFunc("/api/admin/match-squads", server.adminAuthMiddleware(server.createMatchSquad)).Methods("POST")
 	router.HandleFunc("/api/admin/match-squads/match/{matchId}", server.adminAuthMiddleware(server.getMatchSquad)).Methods("GET")
 	router.HandleFunc("/api/admin/match-squads/match/{matchId}", server.adminAuthMiddleware(server.updateMatchSquad)).Methods("PUT")
+	router.HandleFunc("/api/admin/match-squads/match/{matchId}/auto-assign", server.adminAuthMiddleware(server.autoAssignMatchSquad)).Methods("POST")
 	router.HandleFunc("/api/admin/match-squads/match/{matchId}/cleanup", server.adminAuthMiddleware(server.cleanupOldMatchPlayers)).Methods("DELETE")
-	router.HandleFunc("/api/admin/cleanup/all", server.adminAuthMiddleware(server.cleanupAllOldData)).Methods("DELETE")
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -1527,6 +1527,137 @@ func (s *Server) updateMatchSquad(w http.ResponseWriter, r *http.Request) {
 	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
+}
+
+// Admin: Auto-assign squad from team players (backend logic)
+func (s *Server) autoAssignMatchSquad(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	matchId := vars["matchId"]
+	
+	ctx := context.Background()
+	
+	// Get match details
+	matchDoc, err := s.firestoreClient.Collection("matches").Doc(matchId).Get(ctx)
+	if err != nil || !matchDoc.Exists() {
+		http.Error(w, "Match not found", http.StatusNotFound)
+		return
+	}
+	
+	var match Match
+	matchDoc.DataTo(&match)
+	
+	// Get team players for both teams
+	team1Iter := s.firestoreClient.Collection("teamPlayers").Where("teamId", "==", match.Team1ID).Where("isActive", "==", true).Documents(ctx)
+	team2Iter := s.firestoreClient.Collection("teamPlayers").Where("teamId", "==", match.Team2ID).Where("isActive", "==", true).Documents(ctx)
+	
+	var team1Players []MatchSquadPlayer
+	var team2Players []MatchSquadPlayer
+	
+	// Process team 1 players
+	for {
+		doc, err := team1Iter.Next()
+		if err != nil {
+			break
+		}
+		
+		var teamPlayer TeamPlayer
+		doc.DataTo(&teamPlayer)
+		
+		// Get player details
+		playerDoc, playerErr := s.firestoreClient.Collection("players").Doc(teamPlayer.PlayerID).Get(ctx)
+		if playerErr != nil || !playerDoc.Exists() {
+			continue
+		}
+		
+		var player Player
+		playerDoc.DataTo(&player)
+		
+		squadPlayer := MatchSquadPlayer{
+			PlayerID:            player.PlayerID,
+			PlayerName:          player.Name,
+			PlayerImageURL:      player.ImageURL,
+			Category:            player.DefaultCategory,
+			Credits:             player.DefaultCredits,
+			IsStarting6:         teamPlayer.Role == "captain" || len(team1Players) < 6, // First 6 are starting
+			JerseyNumber:        teamPlayer.JerseyNumber,
+			LastMatchPoints:     0,
+			SelectionPercentage: 50.0,
+			LiveStats: PlayerLiveStats{
+				Attacks: 0, Aces: 0, Blocks: 0, ReceptionsSuccess: 0, ReceptionErrors: 0,
+				SetsPlayed: []int{}, SetsAsStarter: []int{}, SetsAsSubstitute: []int{}, TotalPoints: 0,
+			},
+		}
+		team1Players = append(team1Players, squadPlayer)
+	}
+	
+	// Process team 2 players
+	for {
+		doc, err := team2Iter.Next()
+		if err != nil {
+			break
+		}
+		
+		var teamPlayer TeamPlayer
+		doc.DataTo(&teamPlayer)
+		
+		// Get player details
+		playerDoc, playerErr := s.firestoreClient.Collection("players").Doc(teamPlayer.PlayerID).Get(ctx)
+		if playerErr != nil || !playerDoc.Exists() {
+			continue
+		}
+		
+		var player Player
+		playerDoc.DataTo(&player)
+		
+		squadPlayer := MatchSquadPlayer{
+			PlayerID:            player.PlayerID,
+			PlayerName:          player.Name,
+			PlayerImageURL:      player.ImageURL,
+			Category:            player.DefaultCategory,
+			Credits:             player.DefaultCredits,
+			IsStarting6:         teamPlayer.Role == "captain" || len(team2Players) < 6, // First 6 are starting
+			JerseyNumber:        teamPlayer.JerseyNumber,
+			LastMatchPoints:     0,
+			SelectionPercentage: 50.0,
+			LiveStats: PlayerLiveStats{
+				Attacks: 0, Aces: 0, Blocks: 0, ReceptionsSuccess: 0, ReceptionErrors: 0,
+				SetsPlayed: []int{}, SetsAsStarter: []int{}, SetsAsSubstitute: []int{}, TotalPoints: 0,
+			},
+		}
+		team2Players = append(team2Players, squadPlayer)
+	}
+	
+	if len(team1Players) == 0 && len(team2Players) == 0 {
+		http.Error(w, "No team players found. Please assign players to teams first.", http.StatusBadRequest)
+		return
+	}
+	
+	// Create match squad document
+	matchSquad := MatchSquad{
+		MatchSquadID: fmt.Sprintf("squad_%s", matchId),
+		MatchID:      matchId,
+		Team1ID:      match.Team1ID,
+		Team2ID:      match.Team2ID,
+		Team1Players: team1Players,
+		Team2Players: team2Players,
+		CreatedAt:    time.Now().Format(time.RFC3339),
+		UpdatedAt:    time.Now().Format(time.RFC3339),
+	}
+	
+	// Save to database
+	_, err = s.firestoreClient.Collection("matchSquads").Doc(matchId).Set(ctx, matchSquad)
+	if err != nil {
+		http.Error(w, "Failed to create match squad", http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "success",
+		"message": fmt.Sprintf("Auto-assigned %d players (%d team1, %d team2) to match squad", 
+			len(team1Players)+len(team2Players), len(team1Players), len(team2Players)),
+		"squad": matchSquad,
+	})
 }
 
 // Admin: Cleanup old matchPlayers documents
