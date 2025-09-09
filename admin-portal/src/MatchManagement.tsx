@@ -210,6 +210,97 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
     }
   };
 
+  const handleAutoAssignSquad = async (matchId: string) => {
+    if (!matchId) return;
+
+    const match = matches.find(m => m.matchId === matchId);
+    if (!match) return;
+
+    setLoading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      
+      // Fetch team players for both teams
+      const team1PlayersResponse = await fetch(`${apiUrl}/admin/team-players/team/${match.team1Id}`, {
+        headers: getAuthHeaders()
+      });
+      const team2PlayersResponse = await fetch(`${apiUrl}/admin/team-players/team/${match.team2Id}`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!team1PlayersResponse.ok || !team2PlayersResponse.ok) {
+        throw new Error('Failed to fetch team players');
+      }
+
+      const team1Players = await team1PlayersResponse.json();
+      const team2Players = await team2PlayersResponse.json();
+      
+      const allTeamPlayers = [...team1Players, ...team2Players];
+
+      if (allTeamPlayers.length === 0) {
+        alert('No team players found. Please assign players to teams first in Step 4.');
+        return;
+      }
+
+      // Create match players from team assignments
+      let createdCount = 0;
+      for (const teamPlayer of allTeamPlayers) {
+        // Fetch player details from master database
+        const playerResponse = await fetch(`${apiUrl}/admin/players/${teamPlayer.playerId}`, {
+          headers: getAuthHeaders()
+        });
+
+        if (playerResponse.ok) {
+          const playerData = await playerResponse.json();
+          const teamInfo = teams.find(t => t.teamId === teamPlayer.teamId);
+
+          const matchPlayerData = {
+            matchPlayerId: `mp_${matchId}_${teamPlayer.playerId}`,
+            playerId: teamPlayer.playerId,
+            matchId: matchId,
+            teamId: teamPlayer.teamId,
+            playerName: playerData.name,
+            playerImageUrl: playerData.imageUrl,
+            teamCode: teamInfo?.code || '',
+            category: playerData.defaultCategory || 'universal',
+            credits: playerData.defaultCredits || 8.0,
+            isStarting6: teamPlayer.role === 'captain' || Math.random() > 0.3, // Random starting assignment
+            isSubstitute: false,
+            lastMatchPoints: 0,
+            selectionPercentage: 50.0,
+            liveStats: {
+              attacks: 0, aces: 0, blocks: 0, receptionsSuccess: 0, receptionErrors: 0,
+              setsPlayed: [], setsAsStarter: [], setsAsSubstitute: [], totalPoints: 0
+            },
+            createdAt: new Date().toISOString()
+          };
+
+          // Create match player
+          const createResponse = await fetch(`${apiUrl}/admin/match-players`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...getAuthHeaders()
+            },
+            body: JSON.stringify(matchPlayerData)
+          });
+
+          if (createResponse.ok) {
+            createdCount++;
+          }
+        }
+      }
+
+      alert(`Successfully assigned ${createdCount} players to the match!`);
+      fetchMatchPlayers(matchId);
+    } catch (error) {
+      console.error('Error auto-assigning squad:', error);
+      alert('Error assigning squad. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getTeamsInLeague = (leagueId: string) => {
     return teams.filter(t => t.leagueId === leagueId);
   };
@@ -511,8 +602,12 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
           <p className="text-gray-600 mb-4">
             Assign players from team squads to this match to set credits and categories.
           </p>
-          <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
-            Auto-Assign Squad from Team Players
+          <button 
+            onClick={() => handleAutoAssignSquad(selectedMatchId)}
+            disabled={loading}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {loading ? 'Assigning Squad...' : 'Auto-Assign Squad from Team Players'}
           </button>
         </div>
       )}

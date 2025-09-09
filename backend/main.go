@@ -297,6 +297,7 @@ func main() {
 	// Player management - new normalized schema
 	router.HandleFunc("/api/admin/players", server.adminAuthMiddleware(server.createPlayer)).Methods("POST")
 	router.HandleFunc("/api/admin/players", server.adminAuthMiddleware(server.getAllPlayers)).Methods("GET")
+	router.HandleFunc("/api/admin/players/{playerId}", server.adminAuthMiddleware(server.getPlayerById)).Methods("GET")
 	router.HandleFunc("/api/admin/players/{playerId}", server.adminAuthMiddleware(server.updatePlayer)).Methods("PUT")
 	router.HandleFunc("/api/admin/players/{playerId}", server.adminAuthMiddleware(server.deletePlayer)).Methods("DELETE")
 	
@@ -485,8 +486,17 @@ func (s *Server) createMatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Ensure required fields are set
+	if match.MatchID == "" {
+		match.MatchID = fmt.Sprintf("match_%d", time.Now().UnixNano())
+	}
+	if match.CreatedAt == "" {
+		match.CreatedAt = time.Now().Format(time.RFC3339)
+	}
+	
 	ctx := context.Background()
-	_, _, err := s.firestoreClient.Collection("matches").Add(ctx, match)
+	// Use the matchId as the document ID
+	_, err := s.firestoreClient.Collection("matches").Doc(match.MatchID).Set(ctx, match)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -1050,10 +1060,25 @@ func (s *Server) getTeamSquads(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode([]interface{}{})
 }
 
-// Admin: Get admin matches (placeholder)
+// Admin: Get admin matches
 func (s *Server) getAdminMatches(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	iter := s.firestoreClient.Collection("matches").Documents(ctx)
+	
+	var matches []Match
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			break
+		}
+		
+		var match Match
+		doc.DataTo(&match)
+		matches = append(matches, match)
+	}
+	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode([]interface{}{})
+	json.NewEncoder(w).Encode(matches)
 }
 
 // Admin: Update league
@@ -1279,6 +1304,30 @@ func (s *Server) getAllPlayers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(players)
 }
 
+// Admin: Get player by ID
+func (s *Server) getPlayerById(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	playerId := vars["playerId"]
+	
+	ctx := context.Background()
+	doc, err := s.firestoreClient.Collection("players").Doc(playerId).Get(ctx)
+	if err != nil {
+		http.Error(w, "Player not found", http.StatusNotFound)
+		return
+	}
+	
+	if !doc.Exists() {
+		http.Error(w, "Player not found", http.StatusNotFound)
+		return
+	}
+	
+	var player Player
+	doc.DataTo(&player)
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(player)
+}
+
 // Admin: Update player
 func (s *Server) updatePlayer(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -1389,16 +1438,56 @@ func (s *Server) deleteTeamPlayer(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
 
-// Admin: Create match player (placeholder)
+// Admin: Create match player
 func (s *Server) createMatchPlayer(w http.ResponseWriter, r *http.Request) {
+	var matchPlayer MatchPlayer
+	if err := json.NewDecoder(r.Body).Decode(&matchPlayer); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	// Ensure required fields are set
+	if matchPlayer.MatchPlayerID == "" {
+		matchPlayer.MatchPlayerID = fmt.Sprintf("mp_%s_%s", matchPlayer.MatchID, matchPlayer.PlayerID)
+	}
+	if matchPlayer.CreatedAt == "" {
+		matchPlayer.CreatedAt = time.Now().Format(time.RFC3339)
+	}
+	
+	ctx := context.Background()
+	// Use the matchPlayerId as the document ID
+	_, err := s.firestoreClient.Collection("matchPlayers").Doc(matchPlayer.MatchPlayerID).Set(ctx, matchPlayer)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "created", "message": "Match player creation coming soon"})
+	json.NewEncoder(w).Encode(map[string]string{"status": "created"})
 }
 
-// Admin: Get match players (placeholder)
+// Admin: Get match players
 func (s *Server) getMatchPlayers(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	matchId := vars["matchId"]
+	
+	ctx := context.Background()
+	iter := s.firestoreClient.Collection("matchPlayers").Where("matchId", "==", matchId).Documents(ctx)
+	
+	var matchPlayers []MatchPlayer
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			break
+		}
+		
+		var matchPlayer MatchPlayer
+		doc.DataTo(&matchPlayer)
+		matchPlayers = append(matchPlayers, matchPlayer)
+	}
+	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode([]interface{}{})
+	json.NewEncoder(w).Encode(matchPlayers)
 }
 
 // Admin: Update match player stats (placeholder)
