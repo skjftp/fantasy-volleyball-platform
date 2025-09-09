@@ -8,30 +8,32 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
 }
 
-/* Mobile-first responsive breakpoints */
+/* Mobile-first responsive breakpoints - Wider for compact design */
 .container {
   margin-left: auto;
   margin-right: auto;
-  padding-left: 1rem;
-  padding-right: 1rem;
-  max-width: 24rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  max-width: 100%;
 }
 
 @media (min-width: 640px) {
   .container {
-    max-width: 28rem;
+    max-width: 95%;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 }
 
 @media (min-width: 768px) {
   .container {
-    max-width: 32rem;
+    max-width: 90%;
   }
 }
 
 @media (min-width: 1024px) {
   .container {
-    max-width: 56rem;
+    max-width: 80%;
   }
 }
 

@@ -199,24 +199,24 @@ const HomePage: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container py-4">
+      <main className="container py-3">
         {/* Prize Banner */}
-        <div className="bg-gradient-to-r from-red-600 to-orange-500 rounded-lg p-4 text-white mb-4">
+        <div className="bg-gradient-to-r from-red-600 to-orange-500 rounded-lg p-3 text-white mb-3">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold">WIN EXCITING PRIZES</h2>
-              <p className="text-red-100 text-sm">Join free contests!</p>
+              <h2 className="text-base font-bold">WIN EXCITING PRIZES</h2>
+              <p className="text-red-100 text-xs">Join free contests!</p>
             </div>
             <div className="text-right">
-              <div className="text-lg font-bold">{userProfile?.totalWins || 0}</div>
+              <div className="text-base font-bold">{userProfile?.totalWins || 0}</div>
               <div className="text-xs text-red-100">Total Wins</div>
             </div>
           </div>
         </div>
 
         {/* Matches Section */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">
             Upcoming Matches
           </h3>
 
@@ -240,20 +240,20 @@ const HomePage: React.FC = () => {
                   to={`/match/${match.matchId}/contests`}
                   className="block"
                 >
-                  <div className="bg-white rounded-lg p-4 shadow-sm border hover:shadow-md transition-shadow">
+                  <div className="bg-white rounded-lg p-3 shadow-sm border hover:shadow-md transition-shadow">
                     {/* Tournament Name - Centered */}
-                    <div className="text-center mb-3">
+                    <div className="text-center mb-2">
                       <span className="text-xs font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
                         {match.league}
                       </span>
                     </div>
 
                     {/* Match Time and Timer - Above VS */}
-                    <div className="text-center mb-3">
+                    <div className="text-center mb-2">
                       <div className="text-sm font-medium text-gray-800">
                         {timeInfo.matchTime}
                       </div>
-                      <div className={`text-xs font-medium px-2 py-1 rounded mt-1 ${
+                      <div className={`text-xs font-medium px-2 py-0.5 rounded mt-1 ${
                         timeInfo.status === 'live' 
                           ? 'text-red-600 bg-red-100' 
                           : 'text-orange-600 bg-orange-100'
@@ -298,9 +298,9 @@ const HomePage: React.FC = () => {
                     </div>
 
                     {/* Contest Info */}
-                    <div className="mt-4 pt-3 border-t border-gray-100">
+                    <div className="mt-3 pt-2 border-t border-gray-100">
                       <div className="flex items-center justify-center space-x-2">
-                        <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded">
+                        <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-0.5 rounded">
                           Free Giveaway Available
                         </span>
                         <span className="text-xs font-medium text-purple-600">
