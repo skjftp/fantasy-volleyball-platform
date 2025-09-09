@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 interface Player {
@@ -93,7 +93,7 @@ const CaptainSelectionPage: React.FC = () => {
   const getCaptainPercentage = (playerId: string) => {
     // Mock captain selection percentages
     const percentages: { [key: string]: number } = {};
-    players.forEach((player, index) => {
+    players.forEach((player) => {
       percentages[player.playerId] = Math.floor(Math.random() * 40) + 10; // 10-50%
     });
     return percentages[playerId] || 25;
@@ -102,7 +102,7 @@ const CaptainSelectionPage: React.FC = () => {
   const getViceCaptainPercentage = (playerId: string) => {
     // Mock vice-captain selection percentages  
     const percentages: { [key: string]: number } = {};
-    players.forEach((player, index) => {
+    players.forEach((player) => {
       percentages[player.playerId] = Math.floor(Math.random() * 30) + 15; // 15-45%
     });
     return percentages[playerId] || 30;

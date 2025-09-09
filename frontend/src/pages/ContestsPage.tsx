@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 
 interface Contest {
   contestId: string;
@@ -28,7 +27,6 @@ interface Match {
 const ContestsPage: React.FC = () => {
   const { matchId } = useParams<{ matchId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   const [contests, setContests] = useState<Contest[]>([]);
   const [match, setMatch] = useState<Match | null>(null);
