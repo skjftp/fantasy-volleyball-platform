@@ -127,23 +127,30 @@ type TeamPlayer struct {
 	CreatedAt     string  `json:"createdAt" firestore:"createdAt"`
 }
 
-// Match-specific player information - what users see for team creation
-type MatchPlayer struct {
-	MatchPlayerID       string            `json:"matchPlayerId" firestore:"matchPlayerId"`
+// Single match squad document containing all players for that match
+type MatchSquad struct {
+	MatchSquadID string             `json:"matchSquadId" firestore:"matchSquadId"`
+	MatchID      string             `json:"matchId" firestore:"matchId"`
+	Team1ID      string             `json:"team1Id" firestore:"team1Id"`
+	Team2ID      string             `json:"team2Id" firestore:"team2Id"`
+	Team1Players []MatchSquadPlayer `json:"team1Players" firestore:"team1Players"`
+	Team2Players []MatchSquadPlayer `json:"team2Players" firestore:"team2Players"`
+	CreatedAt    string             `json:"createdAt" firestore:"createdAt"`
+	UpdatedAt    string             `json:"updatedAt" firestore:"updatedAt"`
+}
+
+// Player information within a match squad
+type MatchSquadPlayer struct {
 	PlayerID            string            `json:"playerId" firestore:"playerId"`
-	MatchID             string            `json:"matchId" firestore:"matchId"`
-	TeamID              string            `json:"teamId" firestore:"teamId"`
 	PlayerName          string            `json:"playerName" firestore:"playerName"`
 	PlayerImageURL      string            `json:"playerImageUrl" firestore:"playerImageUrl"`
-	TeamCode            string            `json:"teamCode" firestore:"teamCode"`
 	Category            string            `json:"category" firestore:"category"`
 	Credits             float64           `json:"credits" firestore:"credits"`
 	IsStarting6         bool              `json:"isStarting6" firestore:"isStarting6"`
-	IsSubstitute        bool              `json:"isSubstitute" firestore:"isSubstitute"`
+	JerseyNumber        int               `json:"jerseyNumber" firestore:"jerseyNumber"`
 	LastMatchPoints     int               `json:"lastMatchPoints" firestore:"lastMatchPoints"`
 	SelectionPercentage float64           `json:"selectionPercentage" firestore:"selectionPercentage"`
 	LiveStats           PlayerLiveStats   `json:"liveStats" firestore:"liveStats"`
-	CreatedAt           string            `json:"createdAt" firestore:"createdAt"`
 }
 
 type PlayerLiveStats struct {
@@ -306,11 +313,11 @@ func main() {
 	router.HandleFunc("/api/admin/team-players/team/{teamId}", server.adminAuthMiddleware(server.getTeamAssociations)).Methods("GET")
 	router.HandleFunc("/api/admin/team-players/{associationId}", server.adminAuthMiddleware(server.deleteTeamPlayer)).Methods("DELETE")
 	
-	// Match-specific players 
-	router.HandleFunc("/api/admin/match-players", server.adminAuthMiddleware(server.createMatchPlayer)).Methods("POST")
-	router.HandleFunc("/api/admin/match-players/match/{matchId}", server.adminAuthMiddleware(server.getMatchPlayers)).Methods("GET")
-	router.HandleFunc("/api/admin/match-players/{matchPlayerId}", server.adminAuthMiddleware(server.updateMatchPlayer)).Methods("PUT")
-	router.HandleFunc("/api/admin/match-players/{matchPlayerId}/stats", server.adminAuthMiddleware(server.updateMatchPlayerStats)).Methods("PUT")
+	// Match squads (single document per match)
+	router.HandleFunc("/api/admin/match-squads", server.adminAuthMiddleware(server.createMatchSquad)).Methods("POST")
+	router.HandleFunc("/api/admin/match-squads/match/{matchId}", server.adminAuthMiddleware(server.getMatchSquad)).Methods("GET")
+	router.HandleFunc("/api/admin/match-squads/match/{matchId}", server.adminAuthMiddleware(server.updateMatchSquad)).Methods("PUT")
+	router.HandleFunc("/api/admin/match-squads/match/{matchId}/cleanup", server.adminAuthMiddleware(server.cleanupOldMatchPlayers)).Methods("DELETE")
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -1439,25 +1446,26 @@ func (s *Server) deleteTeamPlayer(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
 
-// Admin: Create match player
-func (s *Server) createMatchPlayer(w http.ResponseWriter, r *http.Request) {
-	var matchPlayer MatchPlayer
-	if err := json.NewDecoder(r.Body).Decode(&matchPlayer); err != nil {
+// Admin: Create match squad (single document)
+func (s *Server) createMatchSquad(w http.ResponseWriter, r *http.Request) {
+	var matchSquad MatchSquad
+	if err := json.NewDecoder(r.Body).Decode(&matchSquad); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	
 	// Ensure required fields are set
-	if matchPlayer.MatchPlayerID == "" {
-		matchPlayer.MatchPlayerID = fmt.Sprintf("mp_%s_%s", matchPlayer.MatchID, matchPlayer.PlayerID)
+	if matchSquad.MatchSquadID == "" {
+		matchSquad.MatchSquadID = fmt.Sprintf("squad_%s", matchSquad.MatchID)
 	}
-	if matchPlayer.CreatedAt == "" {
-		matchPlayer.CreatedAt = time.Now().Format(time.RFC3339)
+	if matchSquad.CreatedAt == "" {
+		matchSquad.CreatedAt = time.Now().Format(time.RFC3339)
 	}
+	matchSquad.UpdatedAt = time.Now().Format(time.RFC3339)
 	
 	ctx := context.Background()
-	// Use the matchPlayerId as the document ID
-	_, err := s.firestoreClient.Collection("matchPlayers").Doc(matchPlayer.MatchPlayerID).Set(ctx, matchPlayer)
+	// Use the matchId as the document ID for easy retrieval
+	_, err := s.firestoreClient.Collection("matchSquads").Doc(matchSquad.MatchID).Set(ctx, matchSquad)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -1467,57 +1475,50 @@ func (s *Server) createMatchPlayer(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "created"})
 }
 
-// Admin: Get match players
-func (s *Server) getMatchPlayers(w http.ResponseWriter, r *http.Request) {
+// Admin: Get match squad (single document)
+func (s *Server) getMatchSquad(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	matchId := vars["matchId"]
 	
 	ctx := context.Background()
-	iter := s.firestoreClient.Collection("matchPlayers").Where("matchId", "==", matchId).Documents(ctx)
-	
-	var matchPlayers []MatchPlayer
-	for {
-		doc, err := iter.Next()
-		if err != nil {
-			break
-		}
-		
-		var matchPlayer MatchPlayer
-		doc.DataTo(&matchPlayer)
-		matchPlayers = append(matchPlayers, matchPlayer)
-	}
-	
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(matchPlayers)
-}
-
-// Admin: Update match player
-func (s *Server) updateMatchPlayer(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	matchPlayerId := vars["matchPlayerId"]
-	
-	var matchPlayer MatchPlayer
-	if err := json.NewDecoder(r.Body).Decode(&matchPlayer); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	
-	ctx := context.Background()
-	
-	// Check if document exists first
-	doc, err := s.firestoreClient.Collection("matchPlayers").Doc(matchPlayerId).Get(ctx)
+	doc, err := s.firestoreClient.Collection("matchSquads").Doc(matchId).Get(ctx)
 	if err != nil {
-		http.Error(w, "Match player not found", http.StatusNotFound)
+		// No squad exists yet, return empty
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{})
 		return
 	}
 	
 	if !doc.Exists() {
-		http.Error(w, "Match player not found", http.StatusNotFound)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{})
 		return
 	}
 	
-	// Use complete document replacement for consistency
-	_, err = s.firestoreClient.Collection("matchPlayers").Doc(matchPlayerId).Set(ctx, matchPlayer)
+	var matchSquad MatchSquad
+	doc.DataTo(&matchSquad)
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(matchSquad)
+}
+
+// Admin: Update match squad (single document update)
+func (s *Server) updateMatchSquad(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	matchId := vars["matchId"]
+	
+	var matchSquad MatchSquad
+	if err := json.NewDecoder(r.Body).Decode(&matchSquad); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	// Set update timestamp
+	matchSquad.UpdatedAt = time.Now().Format(time.RFC3339)
+	
+	ctx := context.Background()
+	// Update the entire squad document
+	_, err := s.firestoreClient.Collection("matchSquads").Doc(matchId).Set(ctx, matchSquad)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -1525,6 +1526,36 @@ func (s *Server) updateMatchPlayer(w http.ResponseWriter, r *http.Request) {
 	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
+}
+
+// Admin: Cleanup old matchPlayers documents
+func (s *Server) cleanupOldMatchPlayers(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	matchId := vars["matchId"]
+	
+	ctx := context.Background()
+	
+	// Delete all old matchPlayers documents for this match
+	iter := s.firestoreClient.Collection("matchPlayers").Where("matchId", "==", matchId).Documents(ctx)
+	deletedCount := 0
+	
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			break
+		}
+		
+		_, deleteErr := doc.Ref.Delete(ctx)
+		if deleteErr == nil {
+			deletedCount++
+		}
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "cleaned",
+		"deletedCount": deletedCount,
+	})
 }
 
 // Admin: Update match player stats (placeholder)
