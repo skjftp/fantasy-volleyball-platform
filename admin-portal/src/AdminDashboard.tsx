@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PlayerManagement from './PlayerManagement';
 import SquadAssignment from './SquadAssignment';
+import MatchManagement from './MatchManagement';
 
 interface Admin {
   uid: string;
@@ -1081,11 +1082,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
           />
         )}
 
+        {/* Step 5: Create Matches */}
         {activeTab === 'matches' && (
-          <div className="bg-white rounded-lg shadow-lg p-6 text-center">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Step 4: Match Management</h2>
-            <p className="text-gray-600">Create matches between teams with venues and timing</p>
-          </div>
+          <MatchManagement 
+            teams={teams}
+            leagues={leagues}
+            getAuthHeaders={getAuthHeaders}
+            loading={loading}
+            setLoading={setLoading}
+          />
         )}
 
         {activeTab === 'contests' && (
