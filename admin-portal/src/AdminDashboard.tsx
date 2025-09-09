@@ -11,31 +11,73 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-interface Match {
-  matchId: string;
-  team1: { name: string; code: string; logo: string };
-  team2: { name: string; code: string; logo: string };
-  startTime: string;
+interface League {
+  leagueId: string;
+  name: string;
+  description: string;
+  startDate: string;
+  endDate: string;
   status: string;
-  league: string;
+}
+
+interface Team {
+  teamId: string;
+  name: string;
+  code: string;
+  logo: string;
+  leagueId: string;
+  homeCity: string;
+  captain: string;
+  coach: string;
 }
 
 
+interface ContestTemplate {
+  templateId: string;
+  name: string;
+  description: string;
+  entryFee: number;
+  prizePool: number;
+  maxSpots: number;
+  maxTeamsPerUser: number;
+  winnerPercentage: number;
+  isGuaranteed: boolean;
+}
+
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'matches' | 'players' | 'contests'>('matches');
-  const [matches, setMatches] = useState<Match[]>([]);
+  const [activeTab, setActiveTab] = useState<'leagues' | 'teams' | 'squads' | 'matches' | 'templates' | 'contests' | 'stats'>('leagues');
+  const [leagues, setLeagues] = useState<League[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [templates, setTemplates] = useState<ContestTemplate[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Form states
-  const [newMatch, setNewMatch] = useState({
-    team1Name: '',
-    team1Code: '',
-    team1Logo: '',
-    team2Name: '',
-    team2Code: '',
-    team2Logo: '',
-    startTime: '',
-    league: ''
+  const [newLeague, setNewLeague] = useState({
+    name: '',
+    description: '',
+    startDate: '',
+    endDate: ''
+  });
+
+  const [newTeam, setNewTeam] = useState({
+    name: '',
+    code: '',
+    logo: '',
+    leagueId: '',
+    homeCity: '',
+    captain: '',
+    coach: ''
+  });
+
+  const [newTemplate, setNewTemplate] = useState({
+    name: '',
+    description: '',
+    entryFee: 0,
+    prizePool: 75000,
+    maxSpots: 10000,
+    maxTeamsPerUser: 6,
+    winnerPercentage: 14.0,
+    isGuaranteed: true
   });
 
   const getAuthHeaders = (): Record<string, string> => {
@@ -44,79 +86,200 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
   };
 
   useEffect(() => {
-    if (activeTab === 'matches') {
-      fetchMatches();
+    switch (activeTab) {
+      case 'leagues':
+        fetchLeagues();
+        break;
+      case 'teams':
+        fetchTeams();
+        fetchLeagues(); // For dropdowns
+        break;
+      case 'templates':
+        fetchTemplates();
+        break;
+      default:
+        break;
     }
   }, [activeTab]);
 
-  const fetchMatches = async () => {
+  const fetchLeagues = async () => {
     setLoading(true);
     try {
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
-      const response = await fetch(`${apiUrl}/matches`, {
+      const response = await fetch(`${apiUrl}/admin/leagues`, {
         headers: getAuthHeaders()
       });
       const data = await response.json();
-      setMatches(data || []);
+      setLeagues(data || []);
     } catch (error) {
-      console.error('Error fetching matches:', error);
+      console.error('Error fetching leagues:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchTeams = async () => {
+    setLoading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      const response = await fetch(`${apiUrl}/admin/teams`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      setTeams(data || []);
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleCreateMatch = async (e: React.FormEvent) => {
+  const fetchTemplates = async () => {
+    setLoading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      const response = await fetch(`${apiUrl}/admin/contest-templates`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      setTemplates(data || []);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateLeague = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
-      const matchData = {
-        matchId: `match_${Date.now()}`,
-        team1: {
-          name: newMatch.team1Name,
-          code: newMatch.team1Code,
-          logo: newMatch.team1Logo || `https://picsum.photos/40?random=${Date.now()}`
-        },
-        team2: {
-          name: newMatch.team2Name,
-          code: newMatch.team2Code,
-          logo: newMatch.team2Logo || `https://picsum.photos/40?random=${Date.now() + 1}`
-        },
-        startTime: new Date(newMatch.startTime).toISOString(),
+      const leagueData = {
+        leagueId: `league_${Date.now()}`,
+        ...newLeague,
+        startDate: new Date(newLeague.startDate).toISOString(),
+        endDate: new Date(newLeague.endDate).toISOString(),
         status: 'upcoming',
-        league: newMatch.league
+        createdAt: new Date().toISOString()
       };
 
-      const response = await fetch(`${apiUrl}/admin/matches`, {
+      const response = await fetch(`${apiUrl}/admin/leagues`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders()
         },
-        body: JSON.stringify(matchData)
+        body: JSON.stringify(leagueData)
       });
 
       if (response.ok) {
-        alert('Match created successfully!');
-        setNewMatch({
-          team1Name: '', team1Code: '', team1Logo: '',
-          team2Name: '', team2Code: '', team2Logo: '',
-          startTime: '', league: ''
-        });
-        fetchMatches();
+        alert('League created successfully!');
+        setNewLeague({ name: '', description: '', startDate: '', endDate: '' });
+        fetchLeagues();
       } else {
         const errorText = await response.text();
-        alert(`Failed to create match: ${errorText}`);
+        alert(`Failed to create league: ${errorText}`);
       }
     } catch (error) {
-      console.error('Error creating match:', error);
+      console.error('Error creating league:', error);
       alert('Network error');
     } finally {
       setLoading(false);
     }
   };
+
+  const handleCreateTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      const teamData = {
+        teamId: `team_${Date.now()}`,
+        ...newTeam,
+        logo: newTeam.logo || `https://picsum.photos/80?random=${Date.now()}`,
+        createdAt: new Date().toISOString()
+      };
+
+      const response = await fetch(`${apiUrl}/admin/teams`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(teamData)
+      });
+
+      if (response.ok) {
+        alert('Team created successfully!');
+        setNewTeam({
+          name: '', code: '', logo: '', leagueId: '',
+          homeCity: '', captain: '', coach: ''
+        });
+        fetchTeams();
+      } else {
+        const errorText = await response.text();
+        alert(`Failed to create team: ${errorText}`);
+      }
+    } catch (error) {
+      console.error('Error creating team:', error);
+      alert('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      const templateData = {
+        templateId: `template_${Date.now()}`,
+        ...newTemplate,
+        createdAt: new Date().toISOString()
+      };
+
+      const response = await fetch(`${apiUrl}/admin/contest-templates`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(templateData)
+      });
+
+      if (response.ok) {
+        alert('Contest template created successfully!');
+        setNewTemplate({
+          name: '', description: '', entryFee: 0, prizePool: 75000,
+          maxSpots: 10000, maxTeamsPerUser: 6, winnerPercentage: 14.0, isGuaranteed: true
+        });
+        fetchTemplates();
+      } else {
+        const errorText = await response.text();
+        alert(`Failed to create template: ${errorText}`);
+      }
+    } catch (error) {
+      console.error('Error creating template:', error);
+      alert('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const tabs = [
+    { key: 'leagues' as const, label: '1. Create Leagues', icon: '🏆' },
+    { key: 'teams' as const, label: '2. Create Teams', icon: '⚽' },
+    { key: 'squads' as const, label: '3. Create Squads', icon: '👥' },
+    { key: 'matches' as const, label: '4. Create Matches', icon: '🎯' },
+    { key: 'templates' as const, label: '5. Contest Templates', icon: '📋' },
+    { key: 'contests' as const, label: '6. Create Contests', icon: '🎮' },
+    { key: 'stats' as const, label: '7. Update Stats', icon: '📊' }
+  ];
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -151,21 +314,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
         </div>
       </header>
 
-      {/* Tabs */}
-      <div className="bg-white border-b">
+      {/* Tabs - Hierarchical Workflow */}
+      <div className="bg-white border-b overflow-x-auto">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex space-x-8">
-            {[
-              { key: 'matches' as const, label: 'Match Management', icon: '⚽' },
-              { key: 'players' as const, label: 'Player Management', icon: '👥' },
-              { key: 'contests' as const, label: 'Contest Management', icon: '🏆' }
-            ].map((tab) => (
+          <div className="flex space-x-1 min-w-max">
+            {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`py-4 px-6 border-b-2 font-medium transition-colors ${
+                className={`py-4 px-4 border-b-2 font-medium transition-colors whitespace-nowrap ${
                   activeTab === tab.key
-                    ? 'border-red-600 text-red-600'
+                    ? 'border-red-600 text-red-600 bg-red-50'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
@@ -179,83 +338,56 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
 
       {/* Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {activeTab === 'matches' && (
+        {/* Step 1: Create Leagues */}
+        {activeTab === 'leagues' && (
           <div className="space-y-8">
-            {/* Create Match Form */}
             <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6">Create New Volleyball Match</h2>
-              <form onSubmit={handleCreateMatch} className="space-y-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">
+                Step 1: Create Volleyball League
+              </h2>
+              <form onSubmit={handleCreateLeague} className="space-y-6">
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Team 1 Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">League Name</label>
                     <input
                       type="text"
-                      value={newMatch.team1Name}
-                      onChange={(e) => setNewMatch({...newMatch, team1Name: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                      placeholder="Mumbai Thunder"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Team 1 Code</label>
-                    <input
-                      type="text"
-                      value={newMatch.team1Code}
-                      onChange={(e) => setNewMatch({...newMatch, team1Code: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                      placeholder="MUM"
-                      maxLength={3}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Team 2 Name</label>
-                    <input
-                      type="text"
-                      value={newMatch.team2Name}
-                      onChange={(e) => setNewMatch({...newMatch, team2Name: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                      placeholder="Delhi Dynamos"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Team 2 Code</label>
-                    <input
-                      type="text"
-                      value={newMatch.team2Code}
-                      onChange={(e) => setNewMatch({...newMatch, team2Code: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                      placeholder="DEL"
-                      maxLength={3}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
-                    <input
-                      type="datetime-local"
-                      value={newMatch.startTime}
-                      onChange={(e) => setNewMatch({...newMatch, startTime: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">League</label>
-                    <input
-                      type="text"
-                      value={newMatch.league}
-                      onChange={(e) => setNewMatch({...newMatch, league: e.target.value})}
+                      value={newLeague.name}
+                      onChange={(e) => setNewLeague({...newLeague, name: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                       placeholder="Pro Volleyball League"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <input
+                      type="text"
+                      value={newLeague.description}
+                      onChange={(e) => setNewLeague({...newLeague, description: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      placeholder="Professional volleyball championship"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                    <input
+                      type="date"
+                      value={newLeague.startDate}
+                      onChange={(e) => setNewLeague({...newLeague, startDate: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                    <input
+                      type="date"
+                      value={newLeague.endDate}
+                      onChange={(e) => setNewLeague({...newLeague, endDate: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                       required
                     />
                   </div>
@@ -266,35 +398,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
                   disabled={loading}
                   className="w-full bg-red-600 text-white py-3 px-4 rounded-md font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
                 >
-                  {loading ? 'Creating Match...' : 'Create Match'}
+                  {loading ? 'Creating League...' : 'Create League'}
                 </button>
               </form>
             </div>
 
-            {/* Matches List */}
+            {/* Leagues List */}
             <div className="bg-white rounded-lg shadow-lg">
               <div className="p-6 border-b">
-                <h2 className="text-xl font-semibold text-gray-800">Existing Matches</h2>
+                <h3 className="text-lg font-semibold text-gray-800">Existing Leagues</h3>
               </div>
               <div className="divide-y">
-                {matches.map((match) => (
-                  <div key={match.matchId} className="p-6 hover:bg-gray-50">
+                {leagues.map((league) => (
+                  <div key={league.leagueId} className="p-6 hover:bg-gray-50">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
-                          <img src={match.team1.logo} alt={match.team1.code} className="w-10 h-10 rounded-full" />
-                          <span className="font-medium">{match.team1.code}</span>
-                        </div>
-                        <span className="text-gray-500">vs</span>
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium">{match.team2.code}</span>
-                          <img src={match.team2.logo} alt={match.team2.code} className="w-10 h-10 rounded-full" />
-                        </div>
+                      <div>
+                        <h4 className="font-medium text-gray-800">{league.name}</h4>
+                        <p className="text-sm text-gray-600">{league.description}</p>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-medium">{match.league}</div>
+                        <div className="text-sm font-medium">{league.status}</div>
                         <div className="text-xs text-gray-600">
-                          {new Date(match.startTime).toLocaleString()}
+                          {new Date(league.startDate).toLocaleDateString()} - {new Date(league.endDate).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
@@ -305,17 +430,317 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
           </div>
         )}
 
-        {activeTab === 'players' && (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Player Management</h2>
-            <p className="text-gray-600">Player management features will be implemented here.</p>
+        {/* Step 2: Create Teams */}
+        {activeTab === 'teams' && (
+          <div className="space-y-8">
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">
+                Step 2: Create Teams
+              </h2>
+              <form onSubmit={handleCreateTeam} className="space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Team Name</label>
+                    <input
+                      type="text"
+                      value={newTeam.name}
+                      onChange={(e) => setNewTeam({...newTeam, name: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      placeholder="Mumbai Thunder"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Team Code</label>
+                    <input
+                      type="text"
+                      value={newTeam.code}
+                      onChange={(e) => setNewTeam({...newTeam, code: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      placeholder="MUM"
+                      maxLength={3}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">League</label>
+                    <select
+                      value={newTeam.leagueId}
+                      onChange={(e) => setNewTeam({...newTeam, leagueId: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      required
+                    >
+                      <option value="">Select League</option>
+                      {leagues.map(league => (
+                        <option key={league.leagueId} value={league.leagueId}>
+                          {league.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Home City</label>
+                    <input
+                      type="text"
+                      value={newTeam.homeCity}
+                      onChange={(e) => setNewTeam({...newTeam, homeCity: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      placeholder="Mumbai"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Captain</label>
+                    <input
+                      type="text"
+                      value={newTeam.captain}
+                      onChange={(e) => setNewTeam({...newTeam, captain: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      placeholder="Captain Name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Coach</label>
+                    <input
+                      type="text"
+                      value={newTeam.coach}
+                      onChange={(e) => setNewTeam({...newTeam, coach: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      placeholder="Coach Name"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Team Logo</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          setNewTeam({...newTeam, logo: event.target?.result as string});
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-red-600 text-white py-3 px-4 rounded-md font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
+                >
+                  {loading ? 'Creating Team...' : 'Create Team'}
+                </button>
+              </form>
+            </div>
+
+            {/* Teams List */}
+            <div className="bg-white rounded-lg shadow-lg">
+              <div className="p-6 border-b">
+                <h3 className="text-lg font-semibold text-gray-800">Existing Teams</h3>
+              </div>
+              <div className="divide-y">
+                {teams.map((team) => (
+                  <div key={team.teamId} className="p-6 hover:bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <img src={team.logo} alt={team.code} className="w-12 h-12 rounded-full" />
+                        <div>
+                          <h4 className="font-medium text-gray-800">{team.name} ({team.code})</h4>
+                          <p className="text-sm text-gray-600">{team.homeCity} • Captain: {team.captain}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-gray-600">League: {team.leagueId}</div>
+                        <div className="text-xs text-gray-500">Coach: {team.coach}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Contest Templates */}
+        {activeTab === 'templates' && (
+          <div className="space-y-8">
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">
+                Step 5: Create Contest Templates
+              </h2>
+              <form onSubmit={handleCreateTemplate} className="space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Template Name</label>
+                    <input
+                      type="text"
+                      value={newTemplate.name}
+                      onChange={(e) => setNewTemplate({...newTemplate, name: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      placeholder="Mega Contest"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <input
+                      type="text"
+                      value={newTemplate.description}
+                      onChange={(e) => setNewTemplate({...newTemplate, description: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      placeholder="Win big in this mega contest!"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Entry Fee (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={newTemplate.entryFee}
+                      onChange={(e) => setNewTemplate({...newTemplate, entryFee: parseInt(e.target.value)})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Prize Pool (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={newTemplate.prizePool}
+                      onChange={(e) => setNewTemplate({...newTemplate, prizePool: parseInt(e.target.value)})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Max Spots</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={newTemplate.maxSpots}
+                      onChange={(e) => setNewTemplate({...newTemplate, maxSpots: parseInt(e.target.value)})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Max Teams Per User</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={newTemplate.maxTeamsPerUser}
+                      onChange={(e) => setNewTemplate({...newTemplate, maxTeamsPerUser: parseInt(e.target.value)})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Winner % (14% = 14.0)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="1"
+                      max="50"
+                      value={newTemplate.winnerPercentage}
+                      onChange={(e) => setNewTemplate({...newTemplate, winnerPercentage: parseFloat(e.target.value)})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={newTemplate.isGuaranteed}
+                        onChange={(e) => setNewTemplate({...newTemplate, isGuaranteed: e.target.checked})}
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-gray-700">Guaranteed Contest</span>
+                    </label>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-green-600 text-white py-3 px-4 rounded-md font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
+                >
+                  {loading ? 'Creating Template...' : 'Create Contest Template'}
+                </button>
+              </form>
+            </div>
+
+            {/* Templates List */}
+            <div className="bg-white rounded-lg shadow-lg">
+              <div className="p-6 border-b">
+                <h3 className="text-lg font-semibold text-gray-800">Contest Templates</h3>
+              </div>
+              <div className="divide-y">
+                {templates.map((template) => (
+                  <div key={template.templateId} className="p-6 hover:bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium text-gray-800">{template.name}</h4>
+                        <p className="text-sm text-gray-600">{template.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-green-600">₹{template.prizePool.toLocaleString()}</div>
+                        <div className="text-xs text-gray-600">
+                          Entry: ₹{template.entryFee} • {template.maxSpots.toLocaleString()} spots
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Other tabs - placeholder for now */}
+        {activeTab === 'squads' && (
+          <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Step 3: Squad Management</h2>
+            <p className="text-gray-600">Assign players to team squads for each match</p>
+          </div>
+        )}
+
+        {activeTab === 'matches' && (
+          <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Step 4: Match Management</h2>
+            <p className="text-gray-600">Create matches between teams with venues and timing</p>
           </div>
         )}
 
         {activeTab === 'contests' && (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Contest Management</h2>
-            <p className="text-gray-600">Contest management features will be implemented here.</p>
+          <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Step 6: Contest Creation</h2>
+            <p className="text-gray-600">Create contests for matches using templates</p>
+          </div>
+        )}
+
+        {activeTab === 'stats' && (
+          <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Step 7: Live Stats Update</h2>
+            <p className="text-gray-600">Update player statistics during matches for point calculation</p>
           </div>
         )}
       </main>

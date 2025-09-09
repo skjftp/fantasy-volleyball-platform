@@ -34,20 +34,71 @@ type OTPData struct {
 	Phone     string
 }
 
-type Match struct {
-	MatchID   string    `json:"matchId" firestore:"matchId"`
-	Team1     Team      `json:"team1" firestore:"team1"`
-	Team2     Team      `json:"team2" firestore:"team2"`
-	StartTime time.Time `json:"startTime" firestore:"startTime"`
-	Status    string    `json:"status" firestore:"status"`
-	League    string    `json:"league" firestore:"league"`
+type League struct {
+	LeagueID    string    `json:"leagueId" firestore:"leagueId"`
+	Name        string    `json:"name" firestore:"name"`
+	Description string    `json:"description" firestore:"description"`
+	StartDate   time.Time `json:"startDate" firestore:"startDate"`
+	EndDate     time.Time `json:"endDate" firestore:"endDate"`
+	Status      string    `json:"status" firestore:"status"`
+	CreatedAt   time.Time `json:"createdAt" firestore:"createdAt"`
 }
 
 type Team struct {
+	TeamID      string    `json:"teamId" firestore:"teamId"`
+	Name        string    `json:"name" firestore:"name"`
+	Code        string    `json:"code" firestore:"code"`
+	Logo        string    `json:"logo" firestore:"logo"`
+	LeagueID    string    `json:"leagueId" firestore:"leagueId"`
+	HomeCity    string    `json:"homeCity" firestore:"homeCity"`
+	Captain     string    `json:"captain" firestore:"captain"`
+	Coach       string    `json:"coach" firestore:"coach"`
+	CreatedAt   time.Time `json:"createdAt" firestore:"createdAt"`
+}
+
+type Squad struct {
+	SquadID     string   `json:"squadId" firestore:"squadId"`
+	TeamID      string   `json:"teamId" firestore:"teamId"`
+	PlayerIDs   []string `json:"playerIds" firestore:"playerIds"`
+	MatchID     string   `json:"matchId" firestore:"matchId"`
+	Starting6   []string `json:"starting6" firestore:"starting6"`
+	Substitutes []string `json:"substitutes" firestore:"substitutes"`
+	CreatedAt   time.Time `json:"createdAt" firestore:"createdAt"`
+}
+
+type Match struct {
+	MatchID     string    `json:"matchId" firestore:"matchId"`
+	LeagueID    string    `json:"leagueId" firestore:"leagueId"`
+	Team1ID     string    `json:"team1Id" firestore:"team1Id"`
+	Team2ID     string    `json:"team2Id" firestore:"team2Id"`
+	Team1       TeamInfo  `json:"team1" firestore:"team1"`
+	Team2       TeamInfo  `json:"team2" firestore:"team2"`
+	StartTime   time.Time `json:"startTime" firestore:"startTime"`
+	Status      string    `json:"status" firestore:"status"`
+	Venue       string    `json:"venue" firestore:"venue"`
+	Round       string    `json:"round" firestore:"round"`
+	CreatedAt   time.Time `json:"createdAt" firestore:"createdAt"`
+}
+
+type TeamInfo struct {
 	Name string `json:"name" firestore:"name"`
 	Code string `json:"code" firestore:"code"`
 	Logo string `json:"logo" firestore:"logo"`
 }
+
+type ContestTemplate struct {
+	TemplateID       string  `json:"templateId" firestore:"templateId"`
+	Name             string  `json:"name" firestore:"name"`
+	Description      string  `json:"description" firestore:"description"`
+	EntryFee         int     `json:"entryFee" firestore:"entryFee"`
+	PrizePool        int     `json:"prizePool" firestore:"prizePool"`
+	MaxSpots         int     `json:"maxSpots" firestore:"maxSpots"`
+	MaxTeamsPerUser  int     `json:"maxTeamsPerUser" firestore:"maxTeamsPerUser"`
+	WinnerPercentage float64 `json:"winnerPercentage" firestore:"winnerPercentage"`
+	IsGuaranteed     bool    `json:"isGuaranteed" firestore:"isGuaranteed"`
+	CreatedAt        time.Time `json:"createdAt" firestore:"createdAt"`
+}
+
 
 type Player struct {
 	PlayerID             string            `json:"playerId" firestore:"playerId"`
@@ -192,11 +243,20 @@ func main() {
 	router.HandleFunc("/api/users/{userId}/teams", server.authMiddleware(server.getUserTeams)).Methods("GET")
 	router.HandleFunc("/api/users/{userId}", server.authMiddleware(server.getUserProfile)).Methods("GET")
 	
-	// Admin routes (require admin authentication)
+	// Admin routes (require admin authentication) - Hierarchical structure
+	router.HandleFunc("/api/admin/leagues", server.adminAuthMiddleware(server.createLeague)).Methods("POST")
+	router.HandleFunc("/api/admin/leagues", server.adminAuthMiddleware(server.getLeagues)).Methods("GET")
+	router.HandleFunc("/api/admin/teams", server.adminAuthMiddleware(server.createTeam)).Methods("POST")  
+	router.HandleFunc("/api/admin/teams", server.adminAuthMiddleware(server.getTeams)).Methods("GET")
+	router.HandleFunc("/api/admin/squads", server.adminAuthMiddleware(server.createSquad)).Methods("POST")
+	router.HandleFunc("/api/admin/squads/{teamId}", server.adminAuthMiddleware(server.getTeamSquads)).Methods("GET")
 	router.HandleFunc("/api/admin/matches", server.adminAuthMiddleware(server.createMatch)).Methods("POST")
-	router.HandleFunc("/api/admin/players", server.adminAuthMiddleware(server.createPlayer)).Methods("POST")
+	router.HandleFunc("/api/admin/matches", server.adminAuthMiddleware(server.getAdminMatches)).Methods("GET")
+	router.HandleFunc("/api/admin/contest-templates", server.adminAuthMiddleware(server.createContestTemplate)).Methods("POST")
+	router.HandleFunc("/api/admin/contest-templates", server.adminAuthMiddleware(server.getContestTemplates)).Methods("GET")
 	router.HandleFunc("/api/admin/contests", server.adminAuthMiddleware(server.createContest)).Methods("POST")
-	router.HandleFunc("/api/admin/scores", server.adminAuthMiddleware(server.updatePlayerScores)).Methods("PUT")
+	router.HandleFunc("/api/admin/players", server.adminAuthMiddleware(server.createPlayer)).Methods("POST")
+	router.HandleFunc("/api/admin/players/{playerId}/stats", server.adminAuthMiddleware(server.updatePlayerStats)).Methods("PUT")
 
 	port := os.Getenv("PORT")
 	if port == "" {
