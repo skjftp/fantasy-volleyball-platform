@@ -100,20 +100,50 @@ type ContestTemplate struct {
 }
 
 
+// Base player information - unique and permanent
 type Player struct {
-	PlayerID             string            `json:"playerId" firestore:"playerId"`
-	TeamID               string            `json:"teamId" firestore:"teamId"`
-	MatchID              string            `json:"matchId" firestore:"matchId"`
-	Name                 string            `json:"name" firestore:"name"`
-	Team                 string            `json:"team" firestore:"team"`
-	Category             string            `json:"category" firestore:"category"`
-	Credits              float64           `json:"credits" firestore:"credits"`
-	ImageURL             string            `json:"imageUrl" firestore:"imageUrl"`
-	IsStarting6          bool              `json:"isStarting6" firestore:"isStarting6"`
-	IsSubstitute         bool              `json:"isSubstitute" firestore:"isSubstitute"`
-	LastMatchPoints      int               `json:"lastMatchPoints" firestore:"lastMatchPoints"`
-	SelectionPercentage  float64           `json:"selectionPercentage" firestore:"selectionPercentage"`
-	LiveStats            PlayerLiveStats   `json:"liveStats" firestore:"liveStats"`
+	PlayerID         string  `json:"playerId" firestore:"playerId"`
+	Name             string  `json:"name" firestore:"name"`
+	ImageURL         string  `json:"imageUrl" firestore:"imageUrl"`
+	DefaultCategory  string  `json:"defaultCategory" firestore:"defaultCategory"`
+	DefaultCredits   float64 `json:"defaultCredits" firestore:"defaultCredits"`
+	DateOfBirth      string  `json:"dateOfBirth" firestore:"dateOfBirth"`
+	Nationality      string  `json:"nationality" firestore:"nationality"`
+	CreatedAt        string  `json:"createdAt" firestore:"createdAt"`
+}
+
+// Team-Player association for a season/league
+type TeamPlayer struct {
+	AssociationID string  `json:"associationId" firestore:"associationId"`
+	PlayerID      string  `json:"playerId" firestore:"playerId"`
+	TeamID        string  `json:"teamId" firestore:"teamId"`
+	LeagueID      string  `json:"leagueId" firestore:"leagueId"`
+	Season        string  `json:"season" firestore:"season"`
+	JerseyNumber  int     `json:"jerseyNumber" firestore:"jerseyNumber"`
+	Role          string  `json:"role" firestore:"role"` // captain, vice-captain, player
+	StartDate     string  `json:"startDate" firestore:"startDate"`
+	EndDate       string  `json:"endDate" firestore:"endDate"`
+	IsActive      bool    `json:"isActive" firestore:"isActive"`
+	CreatedAt     string  `json:"createdAt" firestore:"createdAt"`
+}
+
+// Match-specific player information - what users see for team creation
+type MatchPlayer struct {
+	MatchPlayerID       string            `json:"matchPlayerId" firestore:"matchPlayerId"`
+	PlayerID            string            `json:"playerId" firestore:"playerId"`
+	MatchID             string            `json:"matchId" firestore:"matchId"`
+	TeamID              string            `json:"teamId" firestore:"teamId"`
+	PlayerName          string            `json:"playerName" firestore:"playerName"`
+	PlayerImageURL      string            `json:"playerImageUrl" firestore:"playerImageUrl"`
+	TeamCode            string            `json:"teamCode" firestore:"teamCode"`
+	Category            string            `json:"category" firestore:"category"`
+	Credits             float64           `json:"credits" firestore:"credits"`
+	IsStarting6         bool              `json:"isStarting6" firestore:"isStarting6"`
+	IsSubstitute        bool              `json:"isSubstitute" firestore:"isSubstitute"`
+	LastMatchPoints     int               `json:"lastMatchPoints" firestore:"lastMatchPoints"`
+	SelectionPercentage float64           `json:"selectionPercentage" firestore:"selectionPercentage"`
+	LiveStats           PlayerLiveStats   `json:"liveStats" firestore:"liveStats"`
+	CreatedAt           string            `json:"createdAt" firestore:"createdAt"`
 }
 
 type PlayerLiveStats struct {
@@ -263,9 +293,22 @@ func main() {
 	router.HandleFunc("/api/admin/contest-templates/{templateId}", server.adminAuthMiddleware(server.updateContestTemplate)).Methods("PUT")
 	router.HandleFunc("/api/admin/contest-templates/{templateId}", server.adminAuthMiddleware(server.deleteContestTemplate)).Methods("DELETE")
 	router.HandleFunc("/api/admin/contests", server.adminAuthMiddleware(server.createContest)).Methods("POST")
+	
+	// Player management - new normalized schema
 	router.HandleFunc("/api/admin/players", server.adminAuthMiddleware(server.createPlayer)).Methods("POST")
-	router.HandleFunc("/api/admin/players/team/{teamId}", server.adminAuthMiddleware(server.getPlayersByTeam)).Methods("GET")
-	router.HandleFunc("/api/admin/players/{playerId}/stats", server.adminAuthMiddleware(server.updatePlayerStats)).Methods("PUT")
+	router.HandleFunc("/api/admin/players", server.adminAuthMiddleware(server.getAllPlayers)).Methods("GET")
+	router.HandleFunc("/api/admin/players/{playerId}", server.adminAuthMiddleware(server.updatePlayer)).Methods("PUT")
+	router.HandleFunc("/api/admin/players/{playerId}", server.adminAuthMiddleware(server.deletePlayer)).Methods("DELETE")
+	
+	// Team-Player associations
+	router.HandleFunc("/api/admin/team-players", server.adminAuthMiddleware(server.createTeamPlayer)).Methods("POST")
+	router.HandleFunc("/api/admin/team-players/team/{teamId}", server.adminAuthMiddleware(server.getTeamAssociations)).Methods("GET")
+	router.HandleFunc("/api/admin/team-players/{associationId}", server.adminAuthMiddleware(server.deleteTeamPlayer)).Methods("DELETE")
+	
+	// Match-specific players
+	router.HandleFunc("/api/admin/match-players", server.adminAuthMiddleware(server.createMatchPlayer)).Methods("POST")
+	router.HandleFunc("/api/admin/match-players/match/{matchId}", server.adminAuthMiddleware(server.getMatchPlayers)).Methods("GET")
+	router.HandleFunc("/api/admin/match-players/{matchPlayerId}/stats", server.adminAuthMiddleware(server.updateMatchPlayerStats)).Methods("PUT")
 
 	port := os.Getenv("PORT")
 	if port == "" {
