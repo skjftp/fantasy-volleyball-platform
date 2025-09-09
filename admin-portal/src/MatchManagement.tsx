@@ -61,6 +61,8 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
   const [selectedMatchId, setSelectedMatchId] = useState('');
   const [matchPlayers, setMatchPlayers] = useState<MatchPlayer[]>([]);
   const [activeCategory, setActiveCategory] = useState<'setter' | 'attacker' | 'blocker' | 'universal'>('setter');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [editingPlayers, setEditingPlayers] = useState<{[key: string]: MatchPlayer}>({});
 
   // Match creation form
   const [newMatch, setNewMatch] = useState({
@@ -164,49 +166,71 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
     }
   };
 
-  const updateMatchPlayerCredits = async (matchPlayerId: string, newCredits: number) => {
+  // Track player changes without saving immediately
+  const updatePlayerField = (matchPlayerId: string, field: keyof MatchPlayer, value: any) => {
+    const currentPlayer = matchPlayers.find(mp => mp.matchPlayerId === matchPlayerId);
+    if (!currentPlayer) return;
+
+    const updatedPlayer = { ...currentPlayer, [field]: value };
+    
+    // Update editing players state
+    setEditingPlayers(prev => ({
+      ...prev,
+      [matchPlayerId]: updatedPlayer
+    }));
+
+    // Update display state
+    setMatchPlayers(matchPlayers.map(mp => 
+      mp.matchPlayerId === matchPlayerId ? updatedPlayer : mp
+    ));
+
+    setHasUnsavedChanges(true);
+  };
+
+  // Save all changed players
+  const handleSaveAllChanges = async () => {
+    if (Object.keys(editingPlayers).length === 0) {
+      alert('No changes to save');
+      return;
+    }
+
+    setLoading(true);
     try {
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
-      const response = await fetch(`${apiUrl}/admin/match-players/${matchPlayerId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        },
-        body: JSON.stringify({ credits: newCredits })
-      });
+      let savedCount = 0;
 
-      if (response.ok) {
-        // Update local state
-        setMatchPlayers(matchPlayers.map(mp => 
-          mp.matchPlayerId === matchPlayerId ? {...mp, credits: newCredits} : mp
-        ));
+      for (const [matchPlayerId, playerData] of Object.entries(editingPlayers)) {
+        const response = await fetch(`${apiUrl}/admin/match-players/${matchPlayerId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          },
+          body: JSON.stringify(playerData)
+        });
+
+        if (response.ok) {
+          savedCount++;
+        }
       }
+
+      alert(`Successfully saved changes for ${savedCount} players!`);
+      setEditingPlayers({});
+      setHasUnsavedChanges(false);
     } catch (error) {
-      console.error('Error updating credits:', error);
+      console.error('Error saving changes:', error);
+      alert('Error saving changes. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const updateMatchPlayerCategory = async (matchPlayerId: string, newCategory: 'setter' | 'attacker' | 'blocker' | 'universal') => {
-    try {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
-      const response = await fetch(`${apiUrl}/admin/match-players/${matchPlayerId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        },
-        body: JSON.stringify({ category: newCategory })
-      });
-
-      if (response.ok) {
-        // Update local state
-        setMatchPlayers(matchPlayers.map(mp => 
-          mp.matchPlayerId === matchPlayerId ? {...mp, category: newCategory} : mp
-        ));
-      }
-    } catch (error) {
-      console.error('Error updating category:', error);
+  // Discard unsaved changes
+  const handleDiscardChanges = () => {
+    if (confirm('Discard all unsaved changes?')) {
+      setEditingPlayers({});
+      setHasUnsavedChanges(false);
+      fetchMatchPlayers(selectedMatchId); // Refresh from server
     }
   };
 
@@ -486,6 +510,40 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
             </div>
           </div>
 
+          {/* Save/Discard Buttons */}
+          {hasUnsavedChanges && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-yellow-600 rounded-full p-1">
+                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-yellow-800">Unsaved Changes</h4>
+                    <p className="text-sm text-yellow-600">You have {Object.keys(editingPlayers).length} players with unsaved changes</p>
+                  </div>
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleDiscardChanges}
+                    className="bg-gray-500 text-white px-4 py-2 rounded-md text-sm hover:bg-gray-600"
+                  >
+                    Discard Changes
+                  </button>
+                  <button
+                    onClick={handleSaveAllChanges}
+                    disabled={loading}
+                    className="bg-green-600 text-white px-6 py-2 rounded-md text-sm hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {loading ? 'Saving...' : 'Save All Changes'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Category Tabs */}
           <div className="flex space-x-1 mb-6 border-b">
             {categories.map((cat) => (
@@ -506,8 +564,17 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
           {/* Players by Category */}
           <div className="space-y-4">
             {getPlayersByCategory(activeCategory).length > 0 ? (
-              getPlayersByCategory(activeCategory).map((player) => (
-                <div key={player.matchPlayerId} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+              getPlayersByCategory(activeCategory).map((player) => {
+                const hasChanges = editingPlayers[player.matchPlayerId];
+                return (
+                <div 
+                  key={player.matchPlayerId} 
+                  className={`border rounded-lg p-4 transition-colors ${
+                    hasChanges 
+                      ? 'border-yellow-300 bg-yellow-50 shadow-md' 
+                      : 'border-gray-200 bg-gray-50'
+                  }`}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <img
@@ -528,8 +595,8 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
                         <label className="block text-xs text-gray-600 mb-1">Category</label>
                         <select
                           value={player.category}
-                          onChange={(e) => updateMatchPlayerCategory(player.matchPlayerId, e.target.value as 'setter' | 'attacker' | 'blocker' | 'universal')}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm"
+                          onChange={(e) => updatePlayerField(player.matchPlayerId, 'category', e.target.value)}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="setter">Setter</option>
                           <option value="attacker">Attacker</option>
@@ -546,8 +613,8 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
                           min="6"
                           max="15"
                           value={player.credits}
-                          onChange={(e) => updateMatchPlayerCredits(player.matchPlayerId, parseFloat(e.target.value))}
-                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-center"
+                          onChange={(e) => updatePlayerField(player.matchPlayerId, 'credits', parseFloat(e.target.value))}
+                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-center focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
 
@@ -557,12 +624,8 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
                             type="checkbox"
                             checked={player.isStarting6}
                             onChange={(e) => {
-                              // Update starting 6 status
-                              setMatchPlayers(matchPlayers.map(mp => 
-                                mp.matchPlayerId === player.matchPlayerId 
-                                  ? {...mp, isStarting6: e.target.checked, isSubstitute: !e.target.checked} 
-                                  : mp
-                              ));
+                              updatePlayerField(player.matchPlayerId, 'isStarting6', e.target.checked);
+                              updatePlayerField(player.matchPlayerId, 'isSubstitute', !e.target.checked);
                             }}
                             className="mr-2"
                           />
@@ -571,8 +634,14 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
                       </div>
                     </div>
                   </div>
+                  {hasChanges && (
+                    <div className="mt-2 text-xs text-yellow-600 font-medium">
+                      ⚠️ Unsaved changes
+                    </div>
+                  )}
                 </div>
-              ))
+              );
+              })
             ) : (
               <div className="text-center py-8 text-gray-500">
                 No {categories.find(c => c.key === activeCategory)?.label.toLowerCase()} assigned to this match yet.
