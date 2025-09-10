@@ -200,45 +200,59 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
       const match = matches.find(m => m.matchId === selectedMatchId);
       if (!match) return;
 
-      // Separate players by team for the squad document
-      const team1Players: any[] = [];
-      const team2Players: any[] = [];
-
-      matchPlayers.forEach(player => {
-        // Remove UI-specific fields and prepare for backend
-        const cleanPlayer = {
-          playerId: player.playerId,
-          playerName: player.playerName,
-          playerImageUrl: player.playerImageUrl,
-          category: player.category,
-          credits: player.credits,
-          isStarting6: player.isStarting6,
-          jerseyNumber: player.jerseyNumber || 0,
-          lastMatchPoints: player.lastMatchPoints || 0,
-          selectionPercentage: player.selectionPercentage || 50.0,
-          liveStats: player.liveStats || {
-            attacks: 0, aces: 0, blocks: 0, receptionsSuccess: 0, receptionErrors: 0,
-            setsPlayed: [], setsAsStarter: [], setsAsSubstitute: [], totalPoints: 0
-          }
-        };
-
-        if (match.team1Id && player.teamCode === teams.find(t => t.teamId === match.team1Id)?.code) {
-          team1Players.push(cleanPlayer);
-        } else if (match.team2Id && player.teamCode === teams.find(t => t.teamId === match.team2Id)?.code) {
-          team2Players.push(cleanPlayer);
-        }
+      // Get the current squad data first to preserve structure
+      const currentSquadResponse = await fetch(`${apiUrl}/admin/match-squads/match/${selectedMatchId}`, {
+        headers: getAuthHeaders()
       });
+      
+      if (!currentSquadResponse.ok) {
+        throw new Error('Failed to fetch current squad data');
+      }
+      
+      const currentSquad = await currentSquadResponse.json();
+      console.log('Current squad before save:', currentSquad);
 
-      // Create complete squad document
-      const matchSquadData = {
-        matchSquadId: `squad_${selectedMatchId}`,
-        matchId: selectedMatchId,
-        team1Id: match.team1Id,
-        team2Id: match.team2Id,
-        team1Players: team1Players,
-        team2Players: team2Players,
+      // Update the squad with current UI state
+      const updatedSquad = {
+        ...currentSquad,
+        team1Players: matchPlayers
+          .filter(p => p.teamCode === match.team1?.code)
+          .map(player => ({
+            playerId: player.playerId,
+            playerName: player.playerName,
+            playerImageUrl: player.playerImageUrl,
+            category: player.category,
+            credits: player.credits,
+            isStarting6: player.isStarting6,
+            jerseyNumber: player.jerseyNumber || 0,
+            lastMatchPoints: player.lastMatchPoints || 0,
+            selectionPercentage: player.selectionPercentage || 50.0,
+            liveStats: player.liveStats || {
+              attacks: 0, aces: 0, blocks: 0, receptionsSuccess: 0, receptionErrors: 0,
+              setsPlayed: [], setsAsStarter: [], setsAsSubstitute: [], totalPoints: 0
+            }
+          })),
+        team2Players: matchPlayers
+          .filter(p => p.teamCode === match.team2?.code)
+          .map(player => ({
+            playerId: player.playerId,
+            playerName: player.playerName,
+            playerImageUrl: player.playerImageUrl,
+            category: player.category,
+            credits: player.credits,
+            isStarting6: player.isStarting6,
+            jerseyNumber: player.jerseyNumber || 0,
+            lastMatchPoints: player.lastMatchPoints || 0,
+            selectionPercentage: player.selectionPercentage || 50.0,
+            liveStats: player.liveStats || {
+              attacks: 0, aces: 0, blocks: 0, receptionsSuccess: 0, receptionErrors: 0,
+              setsPlayed: [], setsAsStarter: [], setsAsSubstitute: [], totalPoints: 0
+            }
+          })),
         updatedAt: new Date().toISOString()
       };
+
+      console.log('Updated squad to save:', updatedSquad);
 
       const response = await fetch(`${apiUrl}/admin/match-squads/match/${selectedMatchId}`, {
         method: 'PUT',
@@ -246,7 +260,7 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
           'Content-Type': 'application/json',
           ...getAuthHeaders()
         },
-        body: JSON.stringify(matchSquadData)
+        body: JSON.stringify(updatedSquad)
       });
 
       if (response.ok) {
