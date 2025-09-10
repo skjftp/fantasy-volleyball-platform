@@ -107,14 +107,24 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
       
       if (response.ok) {
         const squadData = await response.json();
+        console.log('Squad data received:', squadData); // Debug log
+        
         if (squadData.team1Players || squadData.team2Players) {
+          // Get team codes from the match data
+          const match = matches.find(m => m.matchId === matchId);
+          const team1Code = match?.team1?.code || teams.find(t => t.teamId === squadData.team1Id)?.code || 'T1';
+          const team2Code = match?.team2?.code || teams.find(t => t.teamId === squadData.team2Id)?.code || 'T2';
+          
           // Convert squad data to flat player array for UI compatibility
           const allPlayers = [
-            ...(squadData.team1Players || []).map((p: any) => ({...p, teamCode: squadData.team1Code || 'T1'})),
-            ...(squadData.team2Players || []).map((p: any) => ({...p, teamCode: squadData.team2Code || 'T2'}))
+            ...(squadData.team1Players || []).map((p: any) => ({...p, teamCode: team1Code})),
+            ...(squadData.team2Players || []).map((p: any) => ({...p, teamCode: team2Code}))
           ];
+          
+          console.log('Converted players:', allPlayers); // Debug log
           setMatchPlayers(allPlayers);
         } else {
+          console.log('No squad data found');
           setMatchPlayers([]);
         }
       }
@@ -241,6 +251,8 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
 
       if (response.ok) {
         alert(`Squad saved successfully!`);
+        // Refresh the squad data from backend to show updated values
+        fetchMatchPlayers(selectedMatchId);
       } else {
         throw new Error('Failed to save squad');
       }
