@@ -87,16 +87,24 @@ type TeamInfo struct {
 }
 
 type ContestTemplate struct {
-	TemplateID       string  `json:"templateId" firestore:"templateId"`
-	Name             string  `json:"name" firestore:"name"`
-	Description      string  `json:"description" firestore:"description"`
-	EntryFee         int     `json:"entryFee" firestore:"entryFee"`
-	PrizePool        int     `json:"prizePool" firestore:"prizePool"`
-	MaxSpots         int     `json:"maxSpots" firestore:"maxSpots"`
-	MaxTeamsPerUser  int     `json:"maxTeamsPerUser" firestore:"maxTeamsPerUser"`
-	WinnerPercentage float64 `json:"winnerPercentage" firestore:"winnerPercentage"`
-	IsGuaranteed     bool    `json:"isGuaranteed" firestore:"isGuaranteed"`
-	CreatedAt        string  `json:"createdAt" firestore:"createdAt"`
+	TemplateID       string           `json:"templateId" firestore:"templateId"`
+	Name             string           `json:"name" firestore:"name"`
+	Description      string           `json:"description" firestore:"description"`
+	EntryFee         int              `json:"entryFee" firestore:"entryFee"`
+	TotalPrizePool   int              `json:"totalPrizePool" firestore:"totalPrizePool"`
+	MaxSpots         int              `json:"maxSpots" firestore:"maxSpots"`
+	MaxTeamsPerUser  int              `json:"maxTeamsPerUser" firestore:"maxTeamsPerUser"`
+	IsGuaranteed     bool             `json:"isGuaranteed" firestore:"isGuaranteed"`
+	PrizeDistribution []PrizeRank     `json:"prizeDistribution" firestore:"prizeDistribution"`
+	CreatedAt        string           `json:"createdAt" firestore:"createdAt"`
+}
+
+type PrizeRank struct {
+	RankStart    int    `json:"rankStart" firestore:"rankStart"`       // Starting rank (e.g., 1 for rank 1, 2 for rank 2-3)
+	RankEnd      int    `json:"rankEnd" firestore:"rankEnd"`           // Ending rank (e.g., 1 for rank 1, 3 for rank 2-3)
+	PrizeAmount  int    `json:"prizeAmount" firestore:"prizeAmount"`   // Cash prize amount (0 if kind)
+	PrizeType    string `json:"prizeType" firestore:"prizeType"`       // "cash" or "kind"
+	PrizeDesc    string `json:"prizeDesc" firestore:"prizeDesc"`       // Description for kind prizes
 }
 
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PlayerManagement from './PlayerManagement';
 import SquadAssignment from './SquadAssignment';
 import MatchManagement from './MatchManagement';
+import ContestTemplateManager from './ContestTemplateManager';
 
 interface Admin {
   uid: string;
@@ -35,23 +36,11 @@ interface Team {
 }
 
 
-interface ContestTemplate {
-  templateId: string;
-  name: string;
-  description: string;
-  entryFee: number;
-  prizePool: number;
-  maxSpots: number;
-  maxTeamsPerUser: number;
-  winnerPercentage: number;
-  isGuaranteed: boolean;
-}
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'leagues' | 'teams' | 'players' | 'squads' | 'matches' | 'templates' | 'contests' | 'stats'>('leagues');
   const [leagues, setLeagues] = useState<League[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [templates, setTemplates] = useState<ContestTemplate[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingItem, setEditingItem] = useState<string | null>(null);
 
@@ -76,16 +65,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
     coach: ''
   });
 
-  const [newTemplate, setNewTemplate] = useState({
-    name: '',
-    description: '',
-    entryFee: 0,
-    prizePool: 75000,
-    maxSpots: 10000,
-    maxTeamsPerUser: 6,
-    winnerPercentage: 14.0,
-    isGuaranteed: true
-  });
 
   const getAuthHeaders = (): Record<string, string> => {
     const token = localStorage.getItem('admin_token');
@@ -120,9 +99,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
       case 'teams':
         fetchTeams();
         fetchLeagues(); // For dropdowns
-        break;
-      case 'templates':
-        fetchTemplates();
         break;
       default:
         break;
@@ -161,21 +137,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
     }
   };
 
-  const fetchTemplates = async () => {
-    setLoading(true);
-    try {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
-      const response = await fetch(`${apiUrl}/admin/contest-templates`, {
-        headers: getAuthHeaders()
-      });
-      const data = await response.json();
-      setTemplates(data || []);
-    } catch (error) {
-      console.error('Error fetching templates:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleCreateLeague = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,45 +219,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
     }
   };
 
-  const handleCreateTemplate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
-      const templateData = {
-        templateId: `template_${Date.now()}`,
-        ...newTemplate,
-        createdAt: new Date().toISOString()
-      };
-
-      const response = await fetch(`${apiUrl}/admin/contest-templates`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        },
-        body: JSON.stringify(templateData)
-      });
-
-      if (response.ok) {
-        alert('Contest template created successfully!');
-        setNewTemplate({
-          name: '', description: '', entryFee: 0, prizePool: 75000,
-          maxSpots: 10000, maxTeamsPerUser: 6, winnerPercentage: 14.0, isGuaranteed: true
-        });
-        fetchTemplates();
-      } else {
-        const errorText = await response.text();
-        alert(`Failed to create template: ${errorText}`);
-      }
-    } catch (error) {
-      console.error('Error creating template:', error);
-      alert('Network error');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleEditLeague = (league: League) => {
     setEditLeague(league);
@@ -389,32 +311,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
     }
   };
 
-  const handleDeleteTemplate = async (templateId: string) => {
-    if (!confirm('Are you sure you want to delete this contest template?')) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
-      const response = await fetch(`${apiUrl}/admin/contest-templates/${templateId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-
-      if (response.ok) {
-        alert('Contest template deleted successfully!');
-        fetchTemplates();
-      } else {
-        alert('Failed to delete template');
-      }
-    } catch (error) {
-      console.error('Error deleting template:', error);
-      alert('Network error');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleEditTeam = (team: Team) => {
     setEditTeam(team);
@@ -905,161 +801,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
           </div>
         )}
 
-        {/* Step 5: Contest Templates */}
+        {/* Step 6: Contest Templates */}
         {activeTab === 'templates' && (
-          <div className="space-y-8">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6">
-                Step 5: Create Contest Templates
-              </h2>
-              <form onSubmit={handleCreateTemplate} className="space-y-6">
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Template Name</label>
-                    <input
-                      type="text"
-                      value={newTemplate.name}
-                      onChange={(e) => setNewTemplate({...newTemplate, name: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                      placeholder="Mega Contest"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                    <input
-                      type="text"
-                      value={newTemplate.description}
-                      onChange={(e) => setNewTemplate({...newTemplate, description: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                      placeholder="Win big in this mega contest!"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Entry Fee (₹)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={newTemplate.entryFee}
-                      onChange={(e) => setNewTemplate({...newTemplate, entryFee: parseInt(e.target.value)})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Prize Pool (₹)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={newTemplate.prizePool}
-                      onChange={(e) => setNewTemplate({...newTemplate, prizePool: parseInt(e.target.value)})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Max Spots</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={newTemplate.maxSpots}
-                      onChange={(e) => setNewTemplate({...newTemplate, maxSpots: parseInt(e.target.value)})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Max Teams Per User</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={newTemplate.maxTeamsPerUser}
-                      onChange={(e) => setNewTemplate({...newTemplate, maxTeamsPerUser: parseInt(e.target.value)})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Winner % (14% = 14.0)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="1"
-                      max="50"
-                      value={newTemplate.winnerPercentage}
-                      onChange={(e) => setNewTemplate({...newTemplate, winnerPercentage: parseFloat(e.target.value)})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={newTemplate.isGuaranteed}
-                        onChange={(e) => setNewTemplate({...newTemplate, isGuaranteed: e.target.checked})}
-                        className="mr-2"
-                      />
-                      <span className="text-sm text-gray-700">Guaranteed Contest</span>
-                    </label>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-green-600 text-white py-3 px-4 rounded-md font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
-                >
-                  {loading ? 'Creating Template...' : 'Create Contest Template'}
-                </button>
-              </form>
-            </div>
-
-            {/* Templates List */}
-            <div className="bg-white rounded-lg shadow-lg">
-              <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold text-gray-800">Contest Templates</h3>
-              </div>
-              <div className="divide-y">
-                {templates.map((template) => (
-                  <div key={template.templateId} className="p-6 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-gray-800">{template.name}</h4>
-                        <p className="text-sm text-gray-600">{template.description}</p>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-green-600">₹{template.prizePool.toLocaleString()}</div>
-                          <div className="text-xs text-gray-600">
-                            Entry: ₹{template.entryFee} • {template.maxSpots.toLocaleString()} spots
-                          </div>
-                        </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => alert('Template editing feature coming soon!')}
-                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteTemplate(template.templateId)}
-                            className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <ContestTemplateManager 
+            getAuthHeaders={getAuthHeaders}
+            loading={loading}
+            setLoading={setLoading}
+          />
         )}
 
         {/* Step 3: Create Players */}
