@@ -1536,9 +1536,10 @@ func (s *Server) autoAssignMatchSquad(w http.ResponseWriter, r *http.Request) {
 	
 	ctx := context.Background()
 	
-	// Get match details
-	matchDoc, err := s.firestoreClient.Collection("matches").Doc(matchId).Get(ctx)
-	if err != nil || !matchDoc.Exists() {
+	// Get match details by searching for matchId field
+	matchIter := s.firestoreClient.Collection("matches").Where("matchId", "==", matchId).Documents(ctx)
+	matchDoc, err := matchIter.Next()
+	if err != nil {
 		http.Error(w, "Match not found", http.StatusNotFound)
 		return
 	}
