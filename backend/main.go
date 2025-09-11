@@ -202,6 +202,7 @@ type UserTeam struct {
 	ViceCaptainID string   `json:"viceCaptainId" firestore:"viceCaptainId"`
 	TotalPoints   int      `json:"totalPoints" firestore:"totalPoints"`
 	Rank          int      `json:"rank" firestore:"rank"`
+	CreatedAt     string   `json:"createdAt" firestore:"createdAt"`
 }
 
 type User struct {
@@ -289,9 +290,9 @@ func main() {
 	router.HandleFunc("/api/matches/{matchId}/players", server.getPlayersByMatch).Methods("GET")
 	router.HandleFunc("/api/matches/{matchId}/contests", server.getContestsByMatch).Methods("GET")
 	
-	// Protected routes (require authentication)
+	// Protected routes (require user authentication)
 	router.HandleFunc("/api/contests/{contestId}/join", server.authMiddleware(server.joinContest)).Methods("POST")
-	router.HandleFunc("/api/teams", server.authMiddleware(server.createTeam)).Methods("POST")
+	router.HandleFunc("/api/teams", server.authMiddleware(server.createUserTeam)).Methods("POST")
 	router.HandleFunc("/api/users/{userId}/teams", server.authMiddleware(server.getUserTeams)).Methods("GET")
 	router.HandleFunc("/api/users/{userId}", server.authMiddleware(server.getUserProfile)).Methods("GET")
 	
@@ -485,30 +486,63 @@ func (s *Server) getContestsByMatch(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(contests)
 }
 
-// Create a new team
-func (s *Server) createTeam(w http.ResponseWriter, r *http.Request) {
-	var team UserTeam
-	if err := json.NewDecoder(r.Body).Decode(&team); err != nil {
+// Create a user team (for fantasy team creation)
+func (s *Server) createUserTeam(w http.ResponseWriter, r *http.Request) {
+	var teamRequest struct {
+		MatchID       string   `json:"matchId"`
+		Players       []string `json:"players"`
+		CaptainID     string   `json:"captainId"`
+		ViceCaptainID string   `json:"viceCaptainId"`
+		TotalCredits  float64  `json:"totalCredits"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&teamRequest); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	
+	// Get user ID from context
+	userID, ok := r.Context().Value("userID").(string)
+	if !ok {
+		http.Error(w, "User ID not found", http.StatusUnauthorized)
+		return
+	}
+	
 	// Validate team composition
-	if len(team.Players) != 6 {
+	if len(teamRequest.Players) != 6 {
 		http.Error(w, "Team must have exactly 6 players", http.StatusBadRequest)
 		return
 	}
 	
+	// Create user team
+	userTeam := UserTeam{
+		TeamID:        fmt.Sprintf("team_%s_%d", userID, time.Now().UnixNano()),
+		UserID:        userID,
+		MatchID:       teamRequest.MatchID,
+		ContestID:     "", // Will be set when joining contest
+		TeamName:      fmt.Sprintf("T%d", time.Now().Unix()%100),
+		Players:       teamRequest.Players,
+		CaptainID:     teamRequest.CaptainID,
+		ViceCaptainID: teamRequest.ViceCaptainID,
+		TotalPoints:   0,
+		Rank:          0,
+		CreatedAt:     time.Now().Format(time.RFC3339),
+	}
+	
 	// Add team to Firestore
 	ctx := context.Background()
-	_, _, err := s.firestoreClient.Collection("userTeams").Add(ctx, team)
+	_, err := s.firestoreClient.Collection("userTeams").Doc(userTeam.TeamID).Set(ctx, userTeam)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "success",
+		"teamId": userTeam.TeamID,
+		"teamName": userTeam.TeamName,
+	})
 }
 
 // Join a contest
