@@ -368,10 +368,10 @@ const ContestTemplateManager: React.FC<ContestTemplateManagerProps> = ({ getAuth
                       <span className="font-medium">Entry Fee:</span> ₹{template.entryFee}
                     </div>
                     <div>
-                      <span className="font-medium">Total Prize Pool:</span> ₹{template.totalPrizePool.toLocaleString()}
+                      <span className="font-medium">Total Prize Pool:</span> ₹{(template.totalPrizePool || 0).toLocaleString()}
                     </div>
                     <div>
-                      <span className="font-medium">Max Spots:</span> {template.maxSpots.toLocaleString()}
+                      <span className="font-medium">Max Spots:</span> {(template.maxSpots || 0).toLocaleString()}
                     </div>
                     <div>
                       <span className="font-medium">Teams per User:</span> {template.maxTeamsPerUser}
@@ -421,8 +421,8 @@ const ContestTemplateManager: React.FC<ContestTemplateManagerProps> = ({ getAuth
       : `Rank ${prizeRank.rankStart}-${prizeRank.rankEnd}`;
     
     const prizeText = prizeRank.prizeType === 'cash' 
-      ? `₹${prizeRank.prizeAmount.toLocaleString()}` 
-      : prizeRank.prizeDesc;
+      ? `₹${(prizeRank.prizeAmount || 0).toLocaleString()}` 
+      : (prizeRank.prizeDesc || 'Prize');
     
     return `${rankText}: ${prizeText}`;
   }
