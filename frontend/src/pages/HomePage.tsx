@@ -54,66 +54,9 @@ const HomePage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching matches:', error);
-      // Mock data for development - only upcoming matches
-      const mockMatches = [
-        {
-          matchId: 'match_1',
-          team1: {
-            name: 'Mumbai Thunder',
-            code: 'MUM',
-            logo: 'https://picsum.photos/40?random=1'
-          },
-          team2: {
-            name: 'Delhi Dynamos',
-            code: 'DEL',
-            logo: 'https://picsum.photos/40?random=2'
-          },
-          startTime: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
-          status: 'upcoming',
-          league: 'Pro Volleyball League'
-        },
-        {
-          matchId: 'match_2',
-          team1: {
-            name: 'Chennai Chargers',
-            code: 'CHE',
-            logo: 'https://via.placeholder.com/40x40/FFAA00/000000?text=CHE'
-          },
-          team2: {
-            name: 'Bangalore Blasters',
-            code: 'BAN',
-            logo: 'https://via.placeholder.com/40x40/7209B7/FFFFFF?text=BAN'
-          },
-          startTime: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-          status: 'upcoming',
-          league: 'Pro Volleyball League'
-        },
-        {
-          matchId: 'match_3',
-          team1: {
-            name: 'Kolkata Knights',
-            code: 'KOL',
-            logo: 'https://via.placeholder.com/40x40/9333EA/FFFFFF?text=KOL'
-          },
-          team2: {
-            name: 'Hyderabad Hawks',
-            code: 'HYD',
-            logo: 'https://via.placeholder.com/40x40/F59E0B/FFFFFF?text=HYD'
-          },
-          startTime: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
-          status: 'upcoming',
-          league: 'Premier Volleyball Championship'
-        }
-      ];
       
-      // Filter to only show upcoming matches
-      const upcomingOnly = mockMatches.filter(match => {
-        const matchTime = new Date(match.startTime);
-        const now = new Date();
-        return matchTime.getTime() > now.getTime();
-      });
-      
-      setMatches(upcomingOnly);
+      // Show empty state if no real matches available
+      setMatches([]);
     } finally {
       setLoading(false);
     }
