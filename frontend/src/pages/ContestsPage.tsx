@@ -40,7 +40,7 @@ const ContestsPage: React.FC = () => {
   const [match, setMatch] = useState<Match | null>(null);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'prizePool' | 'spots' | 'winners' | 'entry'>('prizePool');
-  const [creditsLeft] = useState(106.93); // Mock user credits
+  const [creditsLeft] = useState(106.93);
 
   useEffect(() => {
     fetchContests();
@@ -60,7 +60,8 @@ const ContestsPage: React.FC = () => {
           ...currentMatch,
           startTime: currentMatch.startTime?.seconds ? 
             new Date(currentMatch.startTime.seconds * 1000).toISOString() : 
-            currentMatch.startTime
+            currentMatch.startTime,
+          league: currentMatch.leagueId || currentMatch.league || 'Volleyball League'
         });
       }
 
@@ -79,46 +80,21 @@ const ContestsPage: React.FC = () => {
       
       // Show empty state if no real contests available
       setContests([]);
-        matchId: matchId!,
-        team1: { name: 'Mumbai Thunder', code: 'MUM', logo: 'https://via.placeholder.com/40' },
-        team2: { name: 'Delhi Dynamos', code: 'DEL', logo: 'https://via.placeholder.com/40' },
-        startTime: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
-        league: 'Pro Volleyball League'
-      });
-      
-      setContests([
-        {
-          contestId: 'contest_1',
-          matchId: matchId!,
-          name: 'PrimeV Giveaway',
-          prizePool: 75000,
-          totalSpots: 10000,
-          spotsLeft: 2653,
-          joinedUsers: 7347,
-          maxTeamsPerUser: 6,
-          totalWinners: 1400,
-          winnerPercentage: 14.0,
-          isGuaranteed: true,
-          status: 'open'
-        },
-        {
-          contestId: 'contest_2',
-          matchId: matchId!,
-          name: 'Mega Prize Pool',
-          prizePool: 100000,
-          totalSpots: 15000,
-          spotsLeft: 5420,
-          joinedUsers: 9580,
-          maxTeamsPerUser: 6,
-          totalWinners: 2100,
-          winnerPercentage: 14.0,
-          isGuaranteed: true,
-          status: 'open'
-        }
-      ]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const sortContests = (contests: Contest[]) => {
+    return [...contests].sort((a, b) => {
+      switch (sortBy) {
+        case 'prizePool': return (b.totalPrizePool || 0) - (a.totalPrizePool || 0);
+        case 'spots': return (a.spotsLeft || 0) - (b.spotsLeft || 0);
+        case 'winners': return (b.prizeDistribution?.length || 0) - (a.prizeDistribution?.length || 0);
+        case 'entry': return (a.entryFee || 0) - (b.entryFee || 0);
+        default: return 0;
+      }
+    });
   };
 
   const formatTimeLeft = (startTime: string) => {
@@ -126,7 +102,7 @@ const ContestsPage: React.FC = () => {
     const matchTime = new Date(startTime);
     const diff = matchTime.getTime() - now.getTime();
 
-    if (diff <= 0) return 'Started';
+    if (diff <= 0) return 'LIVE';
 
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -134,24 +110,43 @@ const ContestsPage: React.FC = () => {
     return `${hours}h ${minutes}m Left`;
   };
 
-  const sortContests = (contests: Contest[]) => {
-    return [...contests].sort((a, b) => {
-      switch (sortBy) {
-        case 'prizePool': return b.prizePool - a.prizePool;
-        case 'spots': return a.spotsLeft - b.spotsLeft;
-        case 'winners': return b.totalWinners - a.totalWinners;
-        case 'entry': return 0; // All are free
-        default: return 0;
-      }
-    });
+  const formatPrizeDisplay = (prizeDistribution?: Array<any>) => {
+    if (!prizeDistribution || prizeDistribution.length === 0) {
+      return 'Prize details available';
+    }
+    
+    return prizeDistribution.slice(0, 2).map(prize => {
+      const rankText = prize.rankStart === prize.rankEnd 
+        ? `Rank ${prize.rankStart}` 
+        : `Rank ${prize.rankStart}-${prize.rankEnd}`;
+      
+      const prizeText = prize.prizeType === 'cash' 
+        ? `₹${(prize.prizeAmount || 0).toLocaleString()}` 
+        : (prize.prizeDesc || 'Prize');
+      
+      return `${rankText}: ${prizeText}`;
+    }).join(' | ') + (prizeDistribution.length > 2 ? ' | ...' : '');
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading contests...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!match) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Match not found</p>
+          <Link to="/" className="text-red-600 hover:underline mt-2 block">
+            Back to Home
+          </Link>
         </div>
       </div>
     );
@@ -160,28 +155,27 @@ const ContestsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-red-600 text-white">
-        <div className="container py-4">
+      <header className="bg-red-600 text-white shadow-sm border-b sticky top-0 z-10">
+        <div className="container py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <button 
-                onClick={() => navigate(-1)}
-                className="text-white hover:text-gray-200"
-              >
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11a2 2 0 010-2.828L6.293 4.465a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-              
-              <div>
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium text-lg">
-                    {match?.team1.code} vs {match?.team2.code}
-                  </span>
-                </div>
-                <div className="text-red-100 text-sm">
-                  {match && formatTimeLeft(match.startTime)}
-                </div>
+            <button 
+              onClick={() => navigate(-1)}
+              className="flex items-center text-white hover:text-gray-200"
+            >
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11a2 2 0 010-2.828L6.293 4.465a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+              Back
+            </button>
+            
+            <div className="text-center flex-1 mx-4">
+              <div className="flex items-center justify-center space-x-2 text-sm">
+                <span className="font-medium">{match.team1.code}</span>
+                <span className="text-red-200">vs</span>
+                <span className="font-medium">{match.team2.code}</span>
+              </div>
+              <div className="text-xs text-red-100 font-medium">
+                {formatTimeLeft(match.startTime)}
               </div>
             </div>
 
@@ -220,138 +214,117 @@ const ContestsPage: React.FC = () => {
                 </button>
               ))}
             </div>
-            
-            <div className="ml-auto">
-              <button className="flex items-center text-gray-600 text-sm">
-                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
-                </svg>
-                All Filters
-              </button>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Create Private Contest */}
-      <div className="container py-3">
-        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg p-3 mb-3 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="bg-white rounded-full p-2">
-              <svg className="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+      {/* Contests */}
+      <main className="container py-4">
+        {contests.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-10 h-10 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div>
-              <h3 className="text-white font-medium">Create Private Contest</h3>
-              <p className="text-yellow-100 text-sm">Compete with friends</p>
-            </div>
+            <h3 className="text-lg font-medium text-gray-800 mb-2">No contests available</h3>
+            <p className="text-gray-600">Contests for this match haven't been created yet.</p>
+            <Link 
+              to="/"
+              className="inline-block mt-4 text-red-600 hover:underline"
+            >
+              Back to Home
+            </Link>
           </div>
-          <button className="bg-white text-yellow-600 rounded-full p-2 hover:bg-yellow-50 transition-colors">
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Contests List */}
-        <div className="space-y-3">
-          {sortContests(contests).map((contest) => (
-            <div key={contest.contestId} className="bg-white rounded-lg border shadow-sm">
-              {/* Contest Header */}
-              <div className="p-4 border-b">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-2">
-                    <h3 className="font-semibold text-gray-800">{contest.name}</h3>
-                    {contest.name.toLowerCase().includes('loot') && (
-                      <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded">
-                        Loot!!!
-                      </span>
-                    )}
-                  </div>
-                  <button className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors">
-                    ₹0
-                  </button>
-                </div>
-                
-                {/* Prize Pool */}
-                <div className="mb-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Prize Pool</span>
-                    <span className="font-semibold text-gray-800">
-                      ₹{contest.prizePool.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="mb-3">
-                  <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                    <span>{contest.spotsLeft.toLocaleString()} Spots Left</span>
-                    <span>{contest.totalSpots.toLocaleString()} Spots</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-red-600 h-2 rounded-full transition-all duration-300"
-                      style={{ 
-                        width: `${((contest.totalSpots - contest.spotsLeft) / contest.totalSpots) * 100}%` 
-                      }}
-                    ></div>
-                  </div>
-                </div>
-
-                {/* Contest Stats */}
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-1">
-                      <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="text-red-600 font-medium">
-                        ₹{(contest.prizePool / contest.totalWinners).toFixed(0)}
-                      </span>
+        ) : (
+          <div className="space-y-4">
+            {sortContests(contests).map((contest) => (
+              <div key={contest.contestId} className="bg-white rounded-lg border shadow-sm">
+                {/* Contest Header */}
+                <div className="p-4 border-b">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <h3 className="font-semibold text-gray-800">{contest.name}</h3>
+                      {contest.isGuaranteed && (
+                        <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded">
+                          Guaranteed
+                        </span>
+                      )}
                     </div>
-                    <div className="text-gray-600">
-                      {contest.winnerPercentage}%
-                    </div>
-                    <div className="text-gray-600">
-                      Upto {contest.maxTeamsPerUser}
-                    </div>
+                    <button className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors">
+                      ₹{contest.entryFee}
+                    </button>
                   </div>
                   
-                  {contest.isGuaranteed && (
-                    <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded">
-                      Guaranteed
-                    </span>
+                  {/* Prize Pool */}
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Prize Pool</span>
+                      <span className="font-semibold text-gray-800">
+                        ₹{(contest.totalPrizePool || 0).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                      <span>{(contest.spotsLeft || 0).toLocaleString()} Spots Left</span>
+                      <span>{(contest.maxSpots || 0).toLocaleString()} Spots</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-red-600 h-2 rounded-full transition-all duration-300"
+                        style={{ 
+                          width: `${contest.maxSpots ? ((contest.maxSpots - (contest.spotsLeft || 0)) / contest.maxSpots) * 100 : 0}%` 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Prize Structure */}
+                  {contest.prizeDistribution && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                      <h5 className="text-xs font-medium text-green-800 mb-2">Prize Structure:</h5>
+                      <div className="text-xs text-green-700">
+                        {formatPrizeDisplay(contest.prizeDistribution)}
+                      </div>
+                    </div>
                   )}
+
+                  {/* Contest Stats */}
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center space-x-4">
+                      <div className="text-gray-600">
+                        Max {contest.maxTeamsPerUser} teams per user
+                      </div>
+                      <div className="text-gray-600">
+                        {contest.joinedUsers} users joined
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Join Button */}
+                <div className="p-4">
+                  <button 
+                    onClick={() => navigate(`/match/${matchId}/create-team?contestId=${contest.contestId}`)}
+                    className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                  >
+                    JOIN CONTEST
+                  </button>
                 </div>
               </div>
-
-              {/* Join Button */}
-              <div className="p-4">
-                <button 
-                  onClick={() => navigate(`/match/${matchId}/create-team`)}
-                  className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
-                >
-                  JOIN CONTEST
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* View All Button */}
-        <div className="mt-6 text-center">
-          <button className="bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors">
-            View All {contests.length} Contests
-          </button>
-        </div>
-      </div>
+            ))}
+          </div>
+        )}
+      </main>
 
       {/* Bottom Navigation - Match-Specific Context */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
         <div className="container py-2">
           <div className="flex justify-around">
+            {/* Contests (active) */}
             <div className="flex flex-col items-center space-y-1 py-2">
               <div className="bg-red-600 rounded-full p-2">
                 <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -367,7 +340,7 @@ const ContestsPage: React.FC = () => {
                   <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
                 </svg>
               </div>
-              <span className="text-xs text-gray-600">My Contests(1)</span>
+              <span className="text-xs text-gray-600">My Contests(0)</span>
             </Link>
             
             <Link to={`/match/${matchId}/my-teams`} className="flex flex-col items-center space-y-1 py-2">
@@ -376,13 +349,13 @@ const ContestsPage: React.FC = () => {
                   <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
                 </svg>
               </div>
-              <span className="text-xs text-gray-600">My Teams(1)</span>
+              <span className="text-xs text-gray-600">My Teams(0)</span>
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* Bottom padding for navigation */}
+      {/* Bottom padding */}
       <div className="h-20"></div>
     </div>
   );

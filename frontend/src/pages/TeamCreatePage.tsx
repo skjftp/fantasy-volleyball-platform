@@ -55,16 +55,67 @@ const TeamCreatePage: React.FC = () => {
 
   const fetchMatchAndPlayers = async () => {
     try {
-      // Mock data - replace with actual API calls
-      const mockMatch: Match = {
-        matchId: matchId!,
-        team1: { name: 'Mumbai Mavericks', code: 'MUM', logo: 'https://via.placeholder.com/40' },
-        team2: { name: 'Delhi Dragons', code: 'DEL', logo: 'https://via.placeholder.com/40' },
-        startTime: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
-        league: 'Pro Volleyball League'
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      
+      // Fetch real match data
+      const matchResponse = await fetch(`${apiUrl}/matches`);
+      const matchData = await matchResponse.json();
+      const currentMatch = matchData.find((m: any) => m.matchId === matchId);
+      
+      if (!currentMatch) {
+        throw new Error('Match not found');
+      }
+
+      const matchInfo: Match = {
+        matchId: currentMatch.matchId,
+        team1: currentMatch.team1,
+        team2: currentMatch.team2,
+        startTime: currentMatch.startTime?.seconds ? 
+          new Date(currentMatch.startTime.seconds * 1000).toISOString() : 
+          currentMatch.startTime,
+        league: currentMatch.leagueId || 'Volleyball League'
       };
 
-      const mockPlayers: Player[] = [
+      // Fetch real squad players from matchSquads collection
+      const squadResponse = await fetch(`${apiUrl}/match-squads/match/${matchId}`);
+      let realPlayers: Player[] = [];
+      
+      if (squadResponse.ok) {
+        const squadData = await squadResponse.json();
+        console.log('Real squad data:', squadData);
+        
+        if (squadData.team1Players && squadData.team2Players) {
+          const allSquadPlayers = [
+            ...squadData.team1Players.map((p: any) => ({
+              ...p,
+              teamCode: currentMatch.team1.code
+            })),
+            ...squadData.team2Players.map((p: any) => ({
+              ...p, 
+              teamCode: currentMatch.team2.code
+            }))
+          ];
+          
+          // Convert squad players to Player interface
+          realPlayers = allSquadPlayers.map((squadPlayer: any) => ({
+            playerId: squadPlayer.playerId,
+            matchId: matchId!,
+            name: squadPlayer.playerName,
+            team: squadPlayer.teamCode,
+            category: squadPlayer.category as 'setter' | 'attacker' | 'blocker' | 'universal',
+            credits: squadPlayer.credits,
+            imageUrl: squadPlayer.playerImageUrl || 'https://randomuser.me/api/portraits/men/1.jpg',
+            isStarting6: squadPlayer.isStarting6,
+            lastMatchPoints: squadPlayer.lastMatchPoints || 0,
+            selectionPercentage: 50.0
+          }));
+          
+          console.log('Converted real players:', realPlayers);
+        }
+      }
+      
+      // Fallback to mock players if no real squad data
+      const mockPlayers: Player[] = realPlayers.length > 0 ? realPlayers : [
         {
           playerId: 'p1',
           matchId: matchId!,
@@ -163,8 +214,8 @@ const TeamCreatePage: React.FC = () => {
         }
       ];
 
-      setMatch(mockMatch);
-      setPlayers(mockPlayers);
+      setMatch(matchInfo);
+      setPlayers(realPlayers.length > 0 ? realPlayers : mockPlayers);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
