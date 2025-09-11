@@ -4,15 +4,23 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 interface Contest {
   contestId: string;
   matchId: string;
+  templateId: string;
   name: string;
-  prizePool: number;
-  totalSpots: number;
+  description: string;
+  entryFee: number;
+  totalPrizePool: number;
+  maxSpots: number;
   spotsLeft: number;
   joinedUsers: number;
   maxTeamsPerUser: number;
-  totalWinners: number;
-  winnerPercentage: number;
   isGuaranteed: boolean;
+  prizeDistribution?: Array<{
+    rankStart: number;
+    rankEnd: number;
+    prizeAmount: number;
+    prizeType: 'cash' | 'kind';
+    prizeDesc: string;
+  }>;
   status: string;
 }
 
@@ -56,15 +64,21 @@ const ContestsPage: React.FC = () => {
         });
       }
 
-      // Fetch contests
-      const contestResponse = await fetch(`${apiUrl}/matches/${matchId}/contests`);
-      const contestData = await contestResponse.json();
-      setContests(contestData || []);
+      // Fetch contests for this match
+      const contestResponse = await fetch(`${apiUrl}/contests`);
+      const allContests = await contestResponse.json();
+      
+      // Filter contests for this specific match
+      const matchContests = allContests.filter((contest: any) => contest.matchId === matchId);
+      console.log('Real contests for match:', matchContests);
+      
+      setContests(matchContests || []);
       
     } catch (error) {
       console.error('Error fetching contests:', error);
-      // Mock data
-      setMatch({
+      
+      // Show empty state if no real contests available
+      setContests([]);
         matchId: matchId!,
         team1: { name: 'Mumbai Thunder', code: 'MUM', logo: 'https://via.placeholder.com/40' },
         team2: { name: 'Delhi Dynamos', code: 'DEL', logo: 'https://via.placeholder.com/40' },
