@@ -362,9 +362,21 @@ func (s *Server) getMatches(w http.ResponseWriter, r *http.Request) {
 		var match Match
 		doc.DataTo(&match)
 		
-		// Check if match is upcoming (assuming string dates in RFC3339 format)
+		// Check if match is upcoming (try multiple date formats)
 		if match.StartTime != "" {
-			if startTime, parseErr := time.Parse(time.RFC3339, match.StartTime); parseErr == nil && time.Now().Before(startTime) {
+			var startTime time.Time
+			var parseErr error
+			
+			// Try RFC3339 format first
+			if startTime, parseErr = time.Parse(time.RFC3339, match.StartTime); parseErr != nil {
+				// Try datetime-local format (YYYY-MM-DDTHH:MM)
+				if startTime, parseErr = time.Parse("2006-01-02T15:04", match.StartTime); parseErr != nil {
+					// Try with seconds
+					startTime, parseErr = time.Parse("2006-01-02T15:04:05", match.StartTime)
+				}
+			}
+			
+			if parseErr == nil && time.Now().Before(startTime) {
 				matches = append(matches, match)
 			}
 		} else {
