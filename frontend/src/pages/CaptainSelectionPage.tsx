@@ -66,23 +66,46 @@ const CaptainSelectionPage: React.FC = () => {
     };
 
     try {
-      // Call API to save team
+      // Call API to save team with authentication
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      
+      // Get auth token from localStorage
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        alert('Please login first');
+        navigate('/login');
+        return;
+      }
+
       const response = await fetch(`${apiUrl}/teams`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(teamData)
       });
 
       if (response.ok) {
-        // Navigate to contests page or team confirmation
-        navigate(`/match/${matchId}/contests`, {
-          state: { teamCreated: true }
-        });
+        const result = await response.json();
+        alert(`Team "${result.teamName}" created successfully!`);
+        
+        // Get contest ID from URL params if available
+        const urlParams = new URLSearchParams(window.location.search);
+        const contestId = urlParams.get('contestId');
+        
+        if (contestId) {
+          // If team was created for specific contest, navigate to contest page
+          navigate(`/match/${matchId}/contests`, {
+            state: { teamCreated: true, teamId: result.teamId, contestId }
+          });
+        } else {
+          // Otherwise go to My Teams
+          navigate('/my-teams');
+        }
       } else {
-        alert('Failed to create team. Please try again.');
+        const errorText = await response.text();
+        alert(`Failed to create team: ${errorText}`);
       }
     } catch (error) {
       console.error('Error creating team:', error);
