@@ -282,8 +282,10 @@ func main() {
 	router.HandleFunc("/api/admin/auth/login", server.adminLogin).Methods("POST")
 	router.HandleFunc("/api/admin/auth/logout", server.adminLogout).Methods("POST")
 
-	// Public routes
+	// Public routes (no authentication required)
 	router.HandleFunc("/api/matches", server.getMatches).Methods("GET")
+	router.HandleFunc("/api/contests", server.getPublicContests).Methods("GET")
+	router.HandleFunc("/api/match-squads/match/{matchId}", server.getPublicMatchSquad).Methods("GET")
 	router.HandleFunc("/api/matches/{matchId}/players", server.getPlayersByMatch).Methods("GET")
 	router.HandleFunc("/api/matches/{matchId}/contests", server.getContestsByMatch).Methods("GET")
 	
@@ -343,12 +345,12 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+port, corsHandler(router)))
 }
 
-// Get upcoming matches only
+// Get upcoming matches only (public endpoint)
 func (s *Server) getMatches(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	
-	// Query for upcoming matches only
-	iter := s.firestoreClient.Collection("matches").Where("status", "==", "upcoming").Documents(ctx)
+	// Get all matches and filter for upcoming ones
+	iter := s.firestoreClient.Collection("matches").Documents(ctx)
 	var matches []Match
 	
 	for {
@@ -360,14 +362,67 @@ func (s *Server) getMatches(w http.ResponseWriter, r *http.Request) {
 		var match Match
 		doc.DataTo(&match)
 		
-		// Double-check that match hasn't started yet
-		if startTime, err := time.Parse(time.RFC3339, match.StartTime); err == nil && time.Now().Before(startTime) {
+		// Check if match is upcoming (assuming string dates in RFC3339 format)
+		if match.StartTime != "" {
+			if startTime, parseErr := time.Parse(time.RFC3339, match.StartTime); parseErr == nil && time.Now().Before(startTime) {
+				matches = append(matches, match)
+			}
+		} else {
+			// If no start time, include it (for testing)
 			matches = append(matches, match)
 		}
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(matches)
+}
+
+// Get contests (public endpoint)
+func (s *Server) getPublicContests(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	iter := s.firestoreClient.Collection("contests").Documents(ctx)
+	
+	var contests []Contest
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			break
+		}
+		
+		var contest Contest
+		doc.DataTo(&contest)
+		contests = append(contests, contest)
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(contests)
+}
+
+// Get match squad (public endpoint)
+func (s *Server) getPublicMatchSquad(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	matchId := vars["matchId"]
+	
+	ctx := context.Background()
+	doc, err := s.firestoreClient.Collection("matchSquads").Doc(matchId).Get(ctx)
+	if err != nil {
+		// No squad exists yet, return empty
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{})
+		return
+	}
+	
+	if !doc.Exists() {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{})
+		return
+	}
+	
+	var matchSquad MatchSquad
+	doc.DataTo(&matchSquad)
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(matchSquad)
 }
 
 // Get players for a specific match
