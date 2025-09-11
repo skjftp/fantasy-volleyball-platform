@@ -3,6 +3,7 @@ import PlayerManagement from './PlayerManagement';
 import SquadAssignment from './SquadAssignment';
 import MatchManagement from './MatchManagement';
 import ContestTemplateManager from './ContestTemplateManager';
+import ContestManager from './ContestManager';
 
 interface Admin {
   uid: string;
@@ -841,11 +842,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
           />
         )}
 
+        {/* Step 7: Create Contests */}
         {activeTab === 'contests' && (
-          <div className="bg-white rounded-lg shadow-lg p-6 text-center">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Step 6: Contest Creation</h2>
-            <p className="text-gray-600">Create contests for matches using templates</p>
-          </div>
+          <ContestManager 
+            getAuthHeaders={getAuthHeaders}
+            loading={loading}
+            setLoading={setLoading}
+          />
         )}
 
         {activeTab === 'stats' && (

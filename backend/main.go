@@ -174,18 +174,21 @@ type PlayerLiveStats struct {
 }
 
 type Contest struct {
-	ContestID        string  `json:"contestId" firestore:"contestId"`
-	MatchID          string  `json:"matchId" firestore:"matchId"`
-	Name             string  `json:"name" firestore:"name"`
-	PrizePool        int     `json:"prizePool" firestore:"prizePool"`
-	TotalSpots       int     `json:"totalSpots" firestore:"totalSpots"`
-	SpotsLeft        int     `json:"spotsLeft" firestore:"spotsLeft"`
-	JoinedUsers      int     `json:"joinedUsers" firestore:"joinedUsers"`
-	MaxTeamsPerUser  int     `json:"maxTeamsPerUser" firestore:"maxTeamsPerUser"`
-	TotalWinners     int     `json:"totalWinners" firestore:"totalWinners"`
-	WinnerPercentage float64 `json:"winnerPercentage" firestore:"winnerPercentage"`
-	IsGuaranteed     bool    `json:"isGuaranteed" firestore:"isGuaranteed"`
-	Status           string  `json:"status" firestore:"status"`
+	ContestID         string       `json:"contestId" firestore:"contestId"`
+	MatchID           string       `json:"matchId" firestore:"matchId"`
+	TemplateID        string       `json:"templateId" firestore:"templateId"`
+	Name              string       `json:"name" firestore:"name"`
+	Description       string       `json:"description" firestore:"description"`
+	EntryFee          int          `json:"entryFee" firestore:"entryFee"`
+	TotalPrizePool    int          `json:"totalPrizePool" firestore:"totalPrizePool"`
+	MaxSpots          int          `json:"maxSpots" firestore:"maxSpots"`
+	SpotsLeft         int          `json:"spotsLeft" firestore:"spotsLeft"`
+	JoinedUsers       int          `json:"joinedUsers" firestore:"joinedUsers"`
+	MaxTeamsPerUser   int          `json:"maxTeamsPerUser" firestore:"maxTeamsPerUser"`
+	IsGuaranteed      bool         `json:"isGuaranteed" firestore:"isGuaranteed"`
+	PrizeDistribution []PrizeRank  `json:"prizeDistribution" firestore:"prizeDistribution"`
+	Status            string       `json:"status" firestore:"status"`
+	CreatedAt         string       `json:"createdAt" firestore:"createdAt"`
 }
 
 type UserTeam struct {
@@ -308,6 +311,9 @@ func main() {
 	router.HandleFunc("/api/admin/contest-templates/{templateId}", server.adminAuthMiddleware(server.updateContestTemplate)).Methods("PUT")
 	router.HandleFunc("/api/admin/contest-templates/{templateId}", server.adminAuthMiddleware(server.deleteContestTemplate)).Methods("DELETE")
 	router.HandleFunc("/api/admin/contests", server.adminAuthMiddleware(server.createContest)).Methods("POST")
+	router.HandleFunc("/api/admin/contests", server.adminAuthMiddleware(server.getContests)).Methods("GET")
+	router.HandleFunc("/api/admin/contests/{contestId}", server.adminAuthMiddleware(server.updateContest)).Methods("PUT")
+	router.HandleFunc("/api/admin/contests/{contestId}", server.adminAuthMiddleware(server.deleteContest)).Methods("DELETE")
 	
 	// Player management - new normalized schema
 	router.HandleFunc("/api/admin/players", server.adminAuthMiddleware(server.createPlayer)).Methods("POST")
@@ -562,8 +568,17 @@ func (s *Server) createContest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Ensure required fields are set
+	if contest.ContestID == "" {
+		contest.ContestID = fmt.Sprintf("contest_%d", time.Now().UnixNano())
+	}
+	if contest.CreatedAt == "" {
+		contest.CreatedAt = time.Now().Format(time.RFC3339)
+	}
+	
 	ctx := context.Background()
-	_, _, err := s.firestoreClient.Collection("contests").Add(ctx, contest)
+	// Use the contestId as the document ID
+	_, err := s.firestoreClient.Collection("contests").Doc(contest.ContestID).Set(ctx, contest)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -571,6 +586,78 @@ func (s *Server) createContest(w http.ResponseWriter, r *http.Request) {
 	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "created"})
+}
+
+// Admin: Get contests
+func (s *Server) getContests(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	iter := s.firestoreClient.Collection("contests").Documents(ctx)
+	
+	var contests []Contest
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			break
+		}
+		
+		var contest Contest
+		doc.DataTo(&contest)
+		contests = append(contests, contest)
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(contests)
+}
+
+// Admin: Update contest
+func (s *Server) updateContest(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	contestId := vars["contestId"]
+	
+	var contest Contest
+	if err := json.NewDecoder(r.Body).Decode(&contest); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	ctx := context.Background()
+	
+	// Check if document exists first
+	doc, err := s.firestoreClient.Collection("contests").Doc(contestId).Get(ctx)
+	if err != nil {
+		http.Error(w, "Contest not found", http.StatusNotFound)
+		return
+	}
+	
+	if !doc.Exists() {
+		http.Error(w, "Contest not found", http.StatusNotFound)
+		return
+	}
+	
+	_, err = s.firestoreClient.Collection("contests").Doc(contestId).Set(ctx, contest)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
+}
+
+// Admin: Delete contest
+func (s *Server) deleteContest(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	contestId := vars["contestId"]
+	
+	ctx := context.Background()
+	_, err := s.firestoreClient.Collection("contests").Doc(contestId).Delete(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
 
 // Admin: Update player scores
