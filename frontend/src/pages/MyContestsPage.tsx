@@ -30,28 +30,79 @@ const MyContestsPage: React.FC = () => {
     try {
       if (!user?.uid) return;
 
-      // Mock data showing matches where user has joined contests
-      setJoinedMatches([
-        {
-          matchId: 'match_1',
-          team1: {
-            name: 'Mumbai Thunder',
-            code: 'MUM',
-            logo: 'https://via.placeholder.com/40x40/FF6B35/FFFFFF?text=MUM'
-          },
-          team2: {
-            name: 'Delhi Dynamos',
-            code: 'DEL',
-            logo: 'https://via.placeholder.com/40x40/004E89/FFFFFF?text=DEL'
-          },
-          startTime: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
-          league: 'Pro Volleyball League',
-          joinedContests: 2,
-          totalTeams: 3
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      
+      // Fetch user's joined contests
+      const contestsResponse = await fetch(`${apiUrl}/users/${user.uid}/contests`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      ]);
+      });
+
+      if (contestsResponse.ok) {
+        const joinedContests = await contestsResponse.json();
+        console.log('User joined contests:', joinedContests);
+        
+        // Fetch matches data to get match details
+        const matchesResponse = await fetch(`${apiUrl}/matches`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (matchesResponse.ok) {
+          const matchesData = await matchesResponse.json();
+          
+          // Group contests by match and count teams
+          const matchContestMap: { [matchId: string]: { contests: number; teams: number } } = {};
+          
+          joinedContests.forEach((contest: any) => {
+            if (!matchContestMap[contest.matchId]) {
+              matchContestMap[contest.matchId] = { contests: 0, teams: 0 };
+            }
+            matchContestMap[contest.matchId].contests += 1;
+            matchContestMap[contest.matchId].teams += contest.teamsCount || 1;
+          });
+          
+          // Create joined matches array
+          const joinedMatchesData = Object.keys(matchContestMap).map(matchId => {
+            const match = matchesData.find((m: any) => m.matchId === matchId);
+            if (!match) return null;
+            
+            return {
+              matchId: match.matchId,
+              team1: match.team1,
+              team2: match.team2,
+              startTime: match.startTime?.seconds ? 
+                new Date(match.startTime.seconds * 1000).toISOString() : 
+                match.startTime,
+              league: match.leagueId || match.league || 'Volleyball League',
+              joinedContests: matchContestMap[matchId].contests,
+              totalTeams: matchContestMap[matchId].teams
+            };
+          }).filter(Boolean);
+          
+          setJoinedMatches(joinedMatchesData as JoinedMatch[]);
+        } else {
+          console.error('Failed to fetch matches data');
+          setJoinedMatches([]);
+        }
+      } else {
+        console.log('No joined contests found or failed to fetch');
+        setJoinedMatches([]);
+      }
+      
     } catch (error) {
       console.error('Error fetching joined matches:', error);
+      setJoinedMatches([]);
     } finally {
       setLoading(false);
     }

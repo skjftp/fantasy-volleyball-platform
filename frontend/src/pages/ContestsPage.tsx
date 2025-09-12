@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Contest {
   contestId: string;
@@ -32,19 +33,64 @@ interface Match {
   league: string;
 }
 
+interface UserTeam {
+  teamId: string;
+  teamName: string;
+  matchId: string;
+  contestId: string;
+  players: any[];
+  captainId: string;
+  viceCaptainId: string;
+  totalPoints: number;
+  rank: number;
+}
+
 const ContestsPage: React.FC = () => {
   const { matchId } = useParams<{ matchId: string }>();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [contests, setContests] = useState<Contest[]>([]);
   const [match, setMatch] = useState<Match | null>(null);
+  const [userTeams, setUserTeams] = useState<UserTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'prizePool' | 'spots' | 'winners' | 'entry'>('prizePool');
   const [creditsLeft] = useState(106.93);
+  const [showTeamModal, setShowTeamModal] = useState(false);
+  const [selectedContest, setSelectedContest] = useState<Contest | null>(null);
+  const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
+  const [joiningContest, setJoiningContest] = useState(false);
 
   useEffect(() => {
     fetchContests();
-  }, [matchId]);
+    fetchUserTeams();
+  }, [matchId, user]);
+
+  const fetchUserTeams = async () => {
+    if (!user?.uid || !matchId) return;
+    
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      const response = await fetch(`${apiUrl}/users/${user.uid}/teams`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const teamsData = await response.json();
+        // Filter teams for current match
+        const matchTeams = teamsData.filter((team: UserTeam) => team.matchId === matchId);
+        setUserTeams(matchTeams || []);
+      }
+    } catch (error) {
+      console.error('Error fetching user teams:', error);
+    }
+  };
 
   const fetchContests = async () => {
     try {
@@ -95,6 +141,89 @@ const ContestsPage: React.FC = () => {
         default: return 0;
       }
     });
+  };
+
+  const handleJoinContest = (contest: Contest) => {
+    if (userTeams.length === 0) {
+      // No teams for this match, redirect to create team
+      navigate(`/match/${matchId}/create-team?contestId=${contest.contestId}`);
+    } else {
+      // User has teams, show selection modal
+      setSelectedContest(contest);
+      setSelectedTeamIds([]);
+      setShowTeamModal(true);
+    }
+  };
+
+  const handleTeamSelection = (teamId: string) => {
+    if (!selectedContest) return;
+    
+    const maxTeams = selectedContest.maxTeamsPerUser;
+    
+    if (selectedTeamIds.includes(teamId)) {
+      // Remove team from selection
+      setSelectedTeamIds(prev => prev.filter(id => id !== teamId));
+    } else {
+      // Add team to selection
+      if (selectedTeamIds.length < maxTeams) {
+        setSelectedTeamIds(prev => [...prev, teamId]);
+      } else if (maxTeams === 1) {
+        // Single team selection - replace current selection
+        setSelectedTeamIds([teamId]);
+      }
+    }
+  };
+
+  const confirmJoinContest = async () => {
+    if (!selectedContest || selectedTeamIds.length === 0) return;
+    
+    setJoiningContest(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        alert('Please login first');
+        return;
+      }
+
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      
+      // Join contest with selected teams
+      for (const teamId of selectedTeamIds) {
+        const response = await fetch(`${apiUrl}/contests/${selectedContest.contestId}/join`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ teamId })
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(error);
+        }
+      }
+
+      // Success - update UI
+      alert(`Successfully joined contest with ${selectedTeamIds.length} team${selectedTeamIds.length > 1 ? 's' : ''}!`);
+      
+      // Update contest spots
+      setContests(prev => prev.map(contest => 
+        contest.contestId === selectedContest.contestId 
+          ? { ...contest, spotsLeft: contest.spotsLeft - selectedTeamIds.length }
+          : contest
+      ));
+      
+      setShowTeamModal(false);
+      setSelectedContest(null);
+      setSelectedTeamIds([]);
+      
+    } catch (error) {
+      console.error('Error joining contest:', error);
+      alert(`Failed to join contest: ${error}`);
+    } finally {
+      setJoiningContest(false);
+    }
   };
 
   const formatTimeLeft = (startTime: string) => {
@@ -308,7 +437,7 @@ const ContestsPage: React.FC = () => {
                 {/* Join Button */}
                 <div className="p-4">
                   <button 
-                    onClick={() => navigate(`/match/${matchId}/create-team?contestId=${contest.contestId}`)}
+                    onClick={() => handleJoinContest(contest)}
                     className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
                   >
                     JOIN CONTEST
@@ -357,6 +486,111 @@ const ContestsPage: React.FC = () => {
 
       {/* Bottom padding */}
       <div className="h-20"></div>
+      
+      {/* Team Selection Modal */}
+      {showTeamModal && selectedContest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-800">Select Teams</h2>
+                <button 
+                  onClick={() => setShowTeamModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Select {selectedContest.maxTeamsPerUser === 1 ? '1 team' : `up to ${selectedContest.maxTeamsPerUser} teams`} to join "{selectedContest.name}"
+              </p>
+            </div>
+            
+            {/* Teams List */}
+            <div className="p-6 max-h-96 overflow-y-auto">
+              {userTeams.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-gray-600">No teams found for this match.</p>
+                  <button
+                    onClick={() => {
+                      setShowTeamModal(false);
+                      navigate(`/match/${matchId}/create-team?contestId=${selectedContest.contestId}`);
+                    }}
+                    className="mt-3 text-red-600 hover:underline"
+                  >
+                    Create a team first
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {userTeams.map((team) => (
+                    <div
+                      key={team.teamId}
+                      onClick={() => handleTeamSelection(team.teamId)}
+                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                        selectedTeamIds.includes(team.teamId)
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium text-gray-800">{team.teamName}</h3>
+                          <p className="text-sm text-gray-600">
+                            {team.players?.length || 6} players • {team.totalPoints} points
+                          </p>
+                        </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          selectedTeamIds.includes(team.teamId)
+                            ? 'border-green-500 bg-green-500'
+                            : 'border-gray-300'
+                        }`}>
+                          {selectedTeamIds.includes(team.teamId) && (
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="p-6 border-t">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm text-gray-600">
+                  {selectedTeamIds.length} of {selectedContest.maxTeamsPerUser} teams selected
+                </div>
+                <div className="text-sm font-medium text-gray-800">
+                  Entry Fee: ₹{(selectedContest.entryFee * selectedTeamIds.length).toFixed(2)}
+                </div>
+              </div>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowTeamModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmJoinContest}
+                  disabled={selectedTeamIds.length === 0 || joiningContest}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {joiningContest ? 'Joining...' : `Join Contest (${selectedTeamIds.length})`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
