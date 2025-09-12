@@ -13,21 +13,6 @@ interface JoinedMatch {
   status: 'upcoming' | 'live' | 'completed';
 }
 
-interface JoinedContest {
-  contestId: string;
-  contestName: string;
-  entryFee: number;
-  totalPrizePool: number;
-  maxSpots: number;
-  joinedUsers: number;
-  userTeams: {
-    teamId: string;
-    teamName: string;
-    points: number;
-    rank?: number;
-  }[];
-  status: 'upcoming' | 'live' | 'completed';
-}
 
 const MyContestsPage: React.FC = () => {
   const { user } = useAuth();
@@ -35,10 +20,7 @@ const MyContestsPage: React.FC = () => {
   const location = useLocation();
   const [joinedMatches, setJoinedMatches] = useState<JoinedMatch[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'live' | 'completed'>('live');
-  const [selectedMatchContests, setSelectedMatchContests] = useState<JoinedContest[]>([]);
-  const [showMatchContests, setShowMatchContests] = useState(false);
-  const [selectedMatchInfo, setSelectedMatchInfo] = useState<JoinedMatch | null>(null);
+  // const [activeTab] = useState<'upcoming' | 'live' | 'completed'>('live');
 
   // Check if we're in match-specific context
   const isMatchSpecific = location.pathname.includes('/match/');
@@ -145,43 +127,6 @@ const MyContestsPage: React.FC = () => {
     }
   };
 
-  const fetchMatchContests = async (matchId: string) => {
-    if (!user?.uid) return;
-    
-    try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) return;
-
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
-      
-      // Fetch user's joined contests for this specific match
-      const response = await fetch(`${apiUrl}/users/${user.uid}/contests?matchId=${matchId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const contestsData = await response.json();
-        console.log('Match contests data:', contestsData);
-        setSelectedMatchContests(contestsData || []);
-      } else {
-        console.error('Failed to fetch match contests');
-        setSelectedMatchContests([]);
-      }
-      
-    } catch (error) {
-      console.error('Error fetching match contests:', error);
-      setSelectedMatchContests([]);
-    }
-  };
-
-  const handleMatchClick = (match: JoinedMatch) => {
-    setSelectedMatchInfo(match);
-    setShowMatchContests(true);
-    fetchMatchContests(match.matchId);
-  };
 
   const formatTimeLeft = (startTime: string) => {
     const now = new Date();
@@ -200,9 +145,6 @@ const MyContestsPage: React.FC = () => {
     return `${hours}h ${minutes}m Left`;
   };
   
-  const getFilteredMatches = () => {
-    return joinedMatches.filter(match => match.status === activeTab);
-  };
 
   if (loading) {
     return (
