@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Player {
   playerId: string;
@@ -13,6 +14,7 @@ interface Player {
 }
 
 const CaptainSelectionPage: React.FC = () => {
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -56,13 +58,35 @@ const CaptainSelectionPage: React.FC = () => {
       return;
     }
 
+    // Fetch existing teams count to determine team name
+    let teamCount = 1;
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (token && user?.uid) {
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+        const teamsResponse = await fetch(`${apiUrl}/users/${user.uid}/teams`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (teamsResponse.ok) {
+          const existingTeams = await teamsResponse.json();
+          teamCount = (existingTeams?.length || 0) + 1;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching team count:', error);
+      // Fallback to sequential numbering
+      teamCount = Math.floor(Math.random() * 100) + 1;
+    }
+
     // Create team data
     const teamData = {
       matchId,
       players: players.map(p => p.playerId),
       captainId,
       viceCaptainId,
-      totalCredits: creditsUsed
+      totalCredits: creditsUsed,
+      suggestedTeamName: `Team ${teamCount}`
     };
 
     try {
