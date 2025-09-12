@@ -107,7 +107,9 @@ const ContestsPage: React.FC = () => {
           startTime: currentMatch.startTime?.seconds ? 
             new Date(currentMatch.startTime.seconds * 1000).toISOString() : 
             currentMatch.startTime,
-          league: currentMatch.leagueId || currentMatch.league || 'Volleyball League'
+          league: currentMatch.leagueId === 'league_1757427809972' ? 'Pro Volleyball League' : 
+                 currentMatch.leagueId === 'league_test' ? 'Test League' : 
+                 'Volleyball League' // Default fallback
         });
       }
 

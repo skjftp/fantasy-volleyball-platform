@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import PointSystemModal from '../components/PointSystemModal';
 
 interface Match {
   matchId: string;
@@ -22,6 +23,7 @@ interface Match {
 const HomePage: React.FC = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showPointSystem, setShowPointSystem] = useState(false);
   const { userProfile } = useAuth();
 
   useEffect(() => {
@@ -40,7 +42,10 @@ const HomePage: React.FC = () => {
             ...match,
             startTime: match.startTime?.seconds ? 
               new Date(match.startTime.seconds * 1000).toISOString() : 
-              match.startTime
+              match.startTime,
+            league: match.leagueId === 'league_1757427809972' ? 'Pro Volleyball League' : 
+                   match.leagueId === 'league_test' ? 'Test League' : 
+                   'Volleyball League' // Default fallback
           }))
           .filter(match => {
             const matchTime = new Date(match.startTime);
@@ -150,9 +155,20 @@ const HomePage: React.FC = () => {
               <h2 className="text-base font-bold">WIN EXCITING PRIZES</h2>
               <p className="text-red-100 text-xs">Join free contests!</p>
             </div>
-            <div className="text-right">
-              <div className="text-base font-bold">{userProfile?.totalWins || 0}</div>
-              <div className="text-xs text-red-100">Total Wins</div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowPointSystem(true)}
+                className="flex items-center text-white hover:text-red-200 transition-colors"
+                title="Fantasy Point System"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </button>
+              <div className="text-right">
+                <div className="text-base font-bold">{userProfile?.totalWins || 0}</div>
+                <div className="text-xs text-red-100">Total Wins</div>
+              </div>
             </div>
           </div>
         </div>
@@ -191,8 +207,15 @@ const HomePage: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Match Time and Timer - Above VS */}
+                    {/* Match Date and Time */}
                     <div className="text-center mb-2">
+                      <div className="text-xs text-gray-600 mb-1">
+                        {new Date(match.startTime).toLocaleDateString('en-IN', {
+                          weekday: 'short',
+                          day: 'numeric',
+                          month: 'short'
+                        })}
+                      </div>
                       <div className="text-sm font-medium text-gray-800">
                         {timeInfo.matchTime}
                       </div>
@@ -295,6 +318,12 @@ const HomePage: React.FC = () => {
 
       {/* Bottom padding to account for fixed nav */}
       <div className="h-20"></div>
+      
+      {/* Point System Modal */}
+      <PointSystemModal 
+        isOpen={showPointSystem}
+        onClose={() => setShowPointSystem(false)}
+      />
     </div>
   );
 };
