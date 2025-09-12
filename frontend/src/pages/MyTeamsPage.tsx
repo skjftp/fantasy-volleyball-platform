@@ -80,54 +80,93 @@ const MyTeamsPage: React.FC = () => {
       const teamsData = await response.json();
       console.log('Teams data received:', teamsData);
       
-      // Process teams data to fetch complete player information
+      // Process teams data to get complete player information using match-squads endpoint
       const processedTeams = [];
+      const matchPlayersCache: { [matchId: string]: Player[] } = {};
       
       for (const team of teamsData || []) {
         console.log('Processing team:', team);
         
-        // If players are just IDs, fetch player details
-        if (team.players && team.players.length > 0) {
-          const playersWithDetails = [];
+        // If players are just IDs, get player details from match-squads
+        if (team.players && team.players.length > 0 && team.matchId) {
+          let matchPlayers: Player[] = [];
           
-          for (const playerId of team.players) {
+          // Check cache first
+          if (matchPlayersCache[team.matchId]) {
+            matchPlayers = matchPlayersCache[team.matchId];
+          } else {
             try {
-              // Check if playerId is already a full object or just an ID
-              if (typeof playerId === 'object' && playerId.playerId) {
-                playersWithDetails.push(playerId);
-              } else if (typeof playerId === 'string') {
-                // Fetch player details from API
-                const playerResponse = await fetch(`${apiUrl}/players/${playerId}`, {
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                  }
-                });
-                
-                if (playerResponse.ok) {
-                  const playerData = await playerResponse.json();
-                  playersWithDetails.push(playerData);
-                } else {
-                  console.warn('Failed to fetch player details for:', playerId);
-                  // Create a fallback player object
-                  playersWithDetails.push({
-                    playerId,
-                    name: 'Unknown Player',
-                    team: 'Unknown',
-                    category: 'universal' as const,
-                    credits: 0,
-                    imageUrl: 'https://randomuser.me/api/portraits/men/1.jpg',
-                    lastMatchPoints: 0,
-                    selectionPercentage: 0
-                  });
+              // Fetch all players for this match using match-squads endpoint
+              const squadResponse = await fetch(`${apiUrl}/match-squads/match/${team.matchId}`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
                 }
+              });
+              
+              if (squadResponse.ok) {
+                const squadData = await squadResponse.json();
+                console.log('Squad data for match', team.matchId, ':', squadData);
+                
+                if (squadData.team1Players && squadData.team2Players) {
+                  const allSquadPlayers = [
+                    ...squadData.team1Players.map((p: any) => ({ ...p, teamCode: squadData.team1?.code || 'T1' })),
+                    ...squadData.team2Players.map((p: any) => ({ ...p, teamCode: squadData.team2?.code || 'T2' }))
+                  ];
+                  
+                  // Convert squad players to Player interface
+                  matchPlayers = allSquadPlayers.map((squadPlayer: any) => ({
+                    playerId: squadPlayer.playerId,
+                    name: squadPlayer.playerName || 'Unknown Player',
+                    team: squadPlayer.teamCode,
+                    category: squadPlayer.category as 'setter' | 'attacker' | 'blocker' | 'universal',
+                    credits: squadPlayer.credits || 0,
+                    imageUrl: squadPlayer.playerImageUrl || 'https://randomuser.me/api/portraits/men/1.jpg',
+                    lastMatchPoints: squadPlayer.lastMatchPoints || 0,
+                    selectionPercentage: squadPlayer.selectionPercentage || 0
+                  }));
+                  
+                  // Cache the players for this match
+                  matchPlayersCache[team.matchId] = matchPlayers;
+                }
+              } else {
+                console.warn('Failed to fetch squad data for match:', team.matchId);
               }
             } catch (error) {
-              console.error('Error fetching player details:', error);
+              console.error('Error fetching squad data:', error);
             }
           }
           
-          processedTeams.push({ ...team, players: playersWithDetails });
+          // Map team player IDs to full player objects
+          const teamPlayersWithDetails = [];
+          
+          for (const playerId of team.players) {
+            if (typeof playerId === 'object' && playerId.playerId) {
+              // Already a full player object
+              teamPlayersWithDetails.push(playerId);
+            } else if (typeof playerId === 'string') {
+              // Find the player in the match players
+              const fullPlayer = matchPlayers.find(p => p.playerId === playerId);
+              if (fullPlayer) {
+                teamPlayersWithDetails.push(fullPlayer);
+              } else {
+                // Fallback player object
+                console.warn('Player not found in squad data:', playerId);
+                teamPlayersWithDetails.push({
+                  playerId,
+                  name: 'Unknown Player',
+                  team: 'Unknown',
+                  category: 'universal' as const,
+                  credits: 0,
+                  imageUrl: 'https://randomuser.me/api/portraits/men/1.jpg',
+                  lastMatchPoints: 0,
+                  selectionPercentage: 0
+                });
+              }
+            }
+          }
+          
+          processedTeams.push({ ...team, players: teamPlayersWithDetails });
         } else {
           processedTeams.push(team);
         }
