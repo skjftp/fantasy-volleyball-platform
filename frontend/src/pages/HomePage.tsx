@@ -43,7 +43,8 @@ const HomePage: React.FC = () => {
             startTime: match.startTime?.seconds ? 
               new Date(match.startTime.seconds * 1000).toISOString() : 
               match.startTime,
-            league: match.leagueId === 'league_1757427809972' ? 'Pro Volleyball League' : 
+            league: match.leagueId === 'pvl_2025_season1' ? 'Prime Volleyball League' :
+                   match.leagueId === 'league_1757427809972' ? 'Pro Volleyball League' : 
                    match.leagueId === 'league_test' ? 'Test League' : 
                    'Volleyball League' // Default fallback
           }))

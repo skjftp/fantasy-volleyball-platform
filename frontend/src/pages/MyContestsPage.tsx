@@ -170,7 +170,8 @@ const MyContestsPage: React.FC = () => {
               team1: match.team1,
               team2: match.team2,
               startTime: matchTime.toISOString(),
-              league: match.leagueId === 'league_1757427809972' ? 'Pro Volleyball League' : 
+              league: match.leagueId === 'pvl_2025_season1' ? 'Prime Volleyball League' :
+                     match.leagueId === 'league_1757427809972' ? 'Pro Volleyball League' : 
                      match.leagueId === 'league_test' ? 'Test League' : 
                      'Volleyball League', // Default fallback
               joinedContests: matchContests.length,
