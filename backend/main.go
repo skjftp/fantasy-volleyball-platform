@@ -244,13 +244,13 @@ type UserContestInfo struct {
 	TotalPrizePool int       `json:"totalPrizePool"`
 	MaxSpots      int        `json:"maxSpots"`
 	JoinedUsers   int        `json:"joinedUsers"`
-	UserTeams     []TeamInfo `json:"userTeams"`
+	UserTeams     []UserTeamInfo `json:"userTeams"`
 	Status        string     `json:"status"`
 	MatchID       string     `json:"matchId"`
 }
 
-// TeamInfo for user contests
-type TeamInfo struct {
+// UserTeamInfo for user contests
+type UserTeamInfo struct {
 	TeamID   string `json:"teamId"`
 	TeamName string `json:"teamName"`
 	Points   int    `json:"points"`
@@ -2030,7 +2030,7 @@ func (s *Server) getUserContests(w http.ResponseWriter, r *http.Request) {
 				JoinedUsers:    contest.JoinedUsers,
 				Status:         contest.Status,
 				MatchID:        contest.MatchID,
-				UserTeams:      []TeamInfo{},
+				UserTeams:      []UserTeamInfo{},
 			}
 		}
 		
@@ -2040,7 +2040,7 @@ func (s *Server) getUserContests(w http.ResponseWriter, r *http.Request) {
 			var userTeam UserTeam
 			teamDoc.DataTo(&userTeam)
 			
-			teamInfo := TeamInfo{
+			teamInfo := UserTeamInfo{
 				TeamID:   contestTeam.TeamID,
 				TeamName: userTeam.TeamName,
 				Points:   contestTeam.TotalPoints,
