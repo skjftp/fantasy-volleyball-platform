@@ -205,6 +205,58 @@ type UserTeam struct {
 	CreatedAt     string   `json:"createdAt" firestore:"createdAt"`
 }
 
+// ContestTeam represents a team participating in a specific contest
+type ContestTeam struct {
+	ContestTeamID string `json:"contestTeamId" firestore:"contestTeamId"`
+	ContestID     string `json:"contestId" firestore:"contestId"`
+	TeamID        string `json:"teamId" firestore:"teamId"`
+	UserID        string `json:"userId" firestore:"userId"`
+	MatchID       string `json:"matchId" firestore:"matchId"`
+	EntryFee      int    `json:"entryFee" firestore:"entryFee"`
+	TotalPoints   int    `json:"totalPoints" firestore:"totalPoints"`
+	Rank          int    `json:"rank" firestore:"rank"`
+	JoinedAt      string `json:"joinedAt" firestore:"joinedAt"`
+}
+
+// LeaderboardEntry represents an entry in contest leaderboard
+type LeaderboardEntry struct {
+	Rank           int    `json:"rank" firestore:"rank"`
+	TeamID         string `json:"teamId" firestore:"teamId"`
+	TeamName       string `json:"teamName" firestore:"teamName"`
+	UserID         string `json:"userId" firestore:"userId"`
+	UserName       string `json:"userName" firestore:"userName"`
+	Points         int    `json:"points" firestore:"points"`
+	IsCurrentUser  bool   `json:"isCurrentUser" firestore:"-"`
+}
+
+// JoinContestRequest represents the request to join a contest
+type JoinContestRequest struct {
+	TeamIds []string `json:"teamIds"`
+	UserID  string   `json:"userId"`
+	MatchID string   `json:"matchId"`
+}
+
+// UserContestInfo represents user's contest participation info
+type UserContestInfo struct {
+	ContestID     string     `json:"contestId"`
+	ContestName   string     `json:"contestName"`
+	EntryFee      int        `json:"entryFee"`
+	TotalPrizePool int       `json:"totalPrizePool"`
+	MaxSpots      int        `json:"maxSpots"`
+	JoinedUsers   int        `json:"joinedUsers"`
+	UserTeams     []TeamInfo `json:"userTeams"`
+	Status        string     `json:"status"`
+	MatchID       string     `json:"matchId"`
+}
+
+// TeamInfo for user contests
+type TeamInfo struct {
+	TeamID   string `json:"teamId"`
+	TeamName string `json:"teamName"`
+	Points   int    `json:"points"`
+	Rank     int    `json:"rank"`
+}
+
 type User struct {
 	UID                  string    `json:"uid" firestore:"uid"`
 	Phone                string    `json:"phone" firestore:"phone"`
@@ -292,8 +344,11 @@ func main() {
 	
 	// Protected routes (require user authentication)
 	router.HandleFunc("/api/contests/{contestId}/join", server.authMiddleware(server.joinContest)).Methods("POST")
+	router.HandleFunc("/api/contests/{contestId}/leaderboard", server.authMiddleware(server.getContestLeaderboard)).Methods("GET")
+	router.HandleFunc("/api/contests/{contestId}", server.authMiddleware(server.getContestDetails)).Methods("GET")
 	router.HandleFunc("/api/teams", server.authMiddleware(server.createUserTeam)).Methods("POST")
 	router.HandleFunc("/api/users/{userId}/teams", server.authMiddleware(server.getUserTeams)).Methods("GET")
+	router.HandleFunc("/api/users/{userId}/contests", server.authMiddleware(server.getUserContests)).Methods("GET")
 	router.HandleFunc("/api/users/{userId}", server.authMiddleware(server.getUserProfile)).Methods("GET")
 	
 	// Admin routes (require admin authentication) - Hierarchical structure
@@ -550,10 +605,7 @@ func (s *Server) joinContest(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	contestID := vars["contestId"]
 	
-	var joinRequest struct {
-		UserID string `json:"userId"`
-		TeamID string `json:"teamId"`
-	}
+	var joinRequest JoinContestRequest
 	
 	if err := json.NewDecoder(r.Body).Decode(&joinRequest); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -562,20 +614,60 @@ func (s *Server) joinContest(w http.ResponseWriter, r *http.Request) {
 	
 	ctx := context.Background()
 	
-	// Update contest spots
+	// Get contest details to get entry fee
+	contestDoc, err := s.firestoreClient.Collection("contests").Doc(contestID).Get(ctx)
+	if err != nil {
+		http.Error(w, "Contest not found", http.StatusNotFound)
+		return
+	}
+	
+	var contest Contest
+	contestDoc.DataTo(&contest)
+	
+	// Create contest team entries for each team
+	batch := s.firestoreClient.Batch()
+	teamsJoined := 0
+	
+	for _, teamID := range joinRequest.TeamIds {
+		// Create a unique contest team entry
+		contestTeamID := fmt.Sprintf("%s_%s_%s", contestID, joinRequest.UserID, teamID)
+		contestTeam := ContestTeam{
+			ContestTeamID: contestTeamID,
+			ContestID:     contestID,
+			TeamID:        teamID,
+			UserID:        joinRequest.UserID,
+			MatchID:       joinRequest.MatchID,
+			EntryFee:      contest.EntryFee,
+			TotalPoints:   0,
+			Rank:          0,
+			JoinedAt:      time.Now().Format(time.RFC3339),
+		}
+		
+		contestTeamRef := s.firestoreClient.Collection("contestTeams").Doc(contestTeamID)
+		batch.Set(contestTeamRef, contestTeam)
+		teamsJoined++
+	}
+	
+	// Update contest spots and users count
 	contestRef := s.firestoreClient.Collection("contests").Doc(contestID)
-	_, err := contestRef.Update(ctx, []firestore.Update{
-		{Path: "spotsLeft", Value: firestore.Increment(-1)},
+	batch.Update(contestRef, []firestore.Update{
+		{Path: "spotsLeft", Value: firestore.Increment(-teamsJoined)},
 		{Path: "joinedUsers", Value: firestore.Increment(1)},
 	})
 	
+	// Commit all changes
+	_, err = batch.Commit(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "joined"})
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":      "joined",
+		"teamsJoined": teamsJoined,
+		"contestId":   contestID,
+	})
 }
 
 // Get user teams
@@ -1891,6 +1983,182 @@ func (s *Server) cleanupOldMatchPlayers(w http.ResponseWriter, r *http.Request) 
 func (s *Server) updateMatchPlayerStats(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "updated", "message": "Match stats update coming soon"})
+}
+
+// Get user's joined contests
+func (s *Server) getUserContests(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID := vars["userId"]
+	matchID := r.URL.Query().Get("matchId") // Optional match filter
+	
+	ctx := context.Background()
+	
+	// Query contest teams for this user
+	query := s.firestoreClient.Collection("contestTeams").Where("userId", "==", userID)
+	if matchID != "" {
+		query = query.Where("matchId", "==", matchID)
+	}
+	
+	iter := query.Documents(ctx)
+	contestMap := make(map[string]*UserContestInfo)
+	
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			break
+		}
+		
+		var contestTeam ContestTeam
+		doc.DataTo(&contestTeam)
+		
+		// Get contest details if not already cached
+		if _, exists := contestMap[contestTeam.ContestID]; !exists {
+			contestDoc, err := s.firestoreClient.Collection("contests").Doc(contestTeam.ContestID).Get(ctx)
+			if err != nil {
+				continue
+			}
+			
+			var contest Contest
+			contestDoc.DataTo(&contest)
+			
+			contestMap[contestTeam.ContestID] = &UserContestInfo{
+				ContestID:      contest.ContestID,
+				ContestName:    contest.Name,
+				EntryFee:       contest.EntryFee,
+				TotalPrizePool: contest.TotalPrizePool,
+				MaxSpots:       contest.MaxSpots,
+				JoinedUsers:    contest.JoinedUsers,
+				Status:         contest.Status,
+				MatchID:        contest.MatchID,
+				UserTeams:      []TeamInfo{},
+			}
+		}
+		
+		// Get team details
+		teamDoc, err := s.firestoreClient.Collection("userTeams").Doc(contestTeam.TeamID).Get(ctx)
+		if err == nil {
+			var userTeam UserTeam
+			teamDoc.DataTo(&userTeam)
+			
+			teamInfo := TeamInfo{
+				TeamID:   contestTeam.TeamID,
+				TeamName: userTeam.TeamName,
+				Points:   contestTeam.TotalPoints,
+				Rank:     contestTeam.Rank,
+			}
+			
+			contestMap[contestTeam.ContestID].UserTeams = append(contestMap[contestTeam.ContestID].UserTeams, teamInfo)
+		}
+	}
+	
+	// Convert map to slice
+	var contests []UserContestInfo
+	for _, contest := range contestMap {
+		contests = append(contests, *contest)
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(contests)
+}
+
+// Get contest leaderboard
+func (s *Server) getContestLeaderboard(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	contestID := vars["contestId"]
+	
+	ctx := context.Background()
+	
+	// Get all contest teams for this contest, ordered by points
+	iter := s.firestoreClient.Collection("contestTeams").
+		Where("contestId", "==", contestID).
+		OrderBy("totalPoints", firestore.Desc).
+		OrderBy("joinedAt", firestore.Asc). // Tiebreaker
+		Documents(ctx)
+	
+	var leaderboard []LeaderboardEntry
+	rank := 1
+	lastPoints := -1
+	sameRankCount := 0
+	
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			break
+		}
+		
+		var contestTeam ContestTeam
+		doc.DataTo(&contestTeam)
+		
+		// Handle ranking with ties
+		if contestTeam.TotalPoints != lastPoints {
+			rank = len(leaderboard) + 1
+			sameRankCount = 0
+		} else {
+			sameRankCount++
+		}
+		
+		// Get team details
+		teamDoc, err := s.firestoreClient.Collection("userTeams").Doc(contestTeam.TeamID).Get(ctx)
+		if err != nil {
+			continue
+		}
+		
+		var userTeam UserTeam
+		teamDoc.DataTo(&userTeam)
+		
+		// Get user details
+		userDoc, err := s.firestoreClient.Collection("users").Doc(contestTeam.UserID).Get(ctx)
+		userName := "Anonymous"
+		if err == nil {
+			var user User
+			userDoc.DataTo(&user)
+			userName = user.Name
+			if userName == "" {
+				userName = user.Phone
+			}
+		}
+		
+		entry := LeaderboardEntry{
+			Rank:     rank,
+			TeamID:   contestTeam.TeamID,
+			TeamName: userTeam.TeamName,
+			UserID:   contestTeam.UserID,
+			UserName: userName,
+			Points:   contestTeam.TotalPoints,
+		}
+		
+		// Update the contest team with current rank
+		if contestTeam.Rank != rank {
+			s.firestoreClient.Collection("contestTeams").Doc(doc.Ref.ID).Update(ctx, []firestore.Update{
+				{Path: "rank", Value: rank},
+			})
+		}
+		
+		leaderboard = append(leaderboard, entry)
+		lastPoints = contestTeam.TotalPoints
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(leaderboard)
+}
+
+// Get contest details
+func (s *Server) getContestDetails(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	contestID := vars["contestId"]
+	
+	ctx := context.Background()
+	contestDoc, err := s.firestoreClient.Collection("contests").Doc(contestID).Get(ctx)
+	if err != nil {
+		http.Error(w, "Contest not found", http.StatusNotFound)
+		return
+	}
+	
+	var contest Contest
+	contestDoc.DataTo(&contest)
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(contest)
 }
 
 // Admin: Update player stats (placeholder)  
