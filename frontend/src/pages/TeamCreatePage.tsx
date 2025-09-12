@@ -6,7 +6,7 @@ interface Player {
   matchId: string;
   name: string;
   team: string;
-  category: 'setter' | 'blocker' | 'attacker' | 'universal';
+  category: 'libero' | 'setter' | 'blocker' | 'attacker' | 'universal';
   credits: number;
   imageUrl: string;
   isStarting6: boolean;
@@ -29,20 +29,25 @@ const TeamCreatePage: React.FC = () => {
   const [match, setMatch] = useState<Match | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
-  const [activeCategory, setActiveCategory] = useState<'setter' | 'blocker' | 'attacker' | 'universal'>('setter');
+  const [activeCategory, setActiveCategory] = useState<'libero' | 'setter' | 'blocker' | 'attacker' | 'universal'>('libero');
   const [loading, setLoading] = useState(true);
   const [creditsUsed, setCreditsUsed] = useState(0);
 
   const TOTAL_CREDITS = 100;
   const TEAM_SIZE = 6;
   const MAX_PLAYERS_PER_TEAM = 4;
-  const MAX_PLAYERS_PER_CATEGORY = 3;
-  const MIN_PLAYERS_PER_CATEGORY = 1;
+  
+  // New category constraints: exactly 1 libero, 1-2 for others
+  const getCategoryConstraints = (category: string) => {
+    if (category === 'libero') return { min: 1, max: 1 };
+    return { min: 1, max: 2 };
+  };
 
   const categories = [
+    { key: 'libero' as const, label: 'Libero', short: 'LIB', color: 'bg-yellow-100 text-yellow-800' },
     { key: 'setter' as const, label: 'Setter', short: 'SET', color: 'bg-blue-100 text-blue-800' },
-    { key: 'attacker' as const, label: 'Attacker', short: 'ATT', color: 'bg-red-100 text-red-800' },
     { key: 'blocker' as const, label: 'Blocker', short: 'BLK', color: 'bg-green-100 text-green-800' },
+    { key: 'attacker' as const, label: 'Attacker', short: 'ATT', color: 'bg-red-100 text-red-800' },
     { key: 'universal' as const, label: 'Universal', short: 'UNI', color: 'bg-purple-100 text-purple-800' }
   ];
 
@@ -273,8 +278,9 @@ const TeamCreatePage: React.FC = () => {
     const counts = getCategoryRequirement();
     const currentCategoryCount = counts[player.category];
     
-    // Can't exceed max players per category
-    if (currentCategoryCount >= MAX_PLAYERS_PER_CATEGORY) return false;
+    // Check category-specific max constraints
+    const categoryConstraints = getCategoryConstraints(player.category);
+    if (currentCategoryCount >= categoryConstraints.max) return false;
     
     // Check if selecting this player would violate minimum requirements for other categories
     if (selectedPlayers.length === TEAM_SIZE - 1) {
@@ -305,9 +311,10 @@ const TeamCreatePage: React.FC = () => {
 
   const getCategoryRequirement = () => {
     const counts = {
+      libero: selectedPlayers.filter(p => p.category === 'libero').length,
       setter: selectedPlayers.filter(p => p.category === 'setter').length,
-      attacker: selectedPlayers.filter(p => p.category === 'attacker').length,  
       blocker: selectedPlayers.filter(p => p.category === 'blocker').length,
+      attacker: selectedPlayers.filter(p => p.category === 'attacker').length,
       universal: selectedPlayers.filter(p => p.category === 'universal').length
     };
 
@@ -317,10 +324,11 @@ const TeamCreatePage: React.FC = () => {
   const isTeamValid = () => {
     const counts = getCategoryRequirement();
     return selectedPlayers.length === TEAM_SIZE &&
-           counts.setter >= 1 &&
-           counts.attacker >= 1 &&
-           counts.blocker >= 1 &&
-           counts.universal >= 1 &&
+           counts.libero === 1 &&     // Exactly 1 libero
+           counts.setter >= 1 && counts.setter <= 2 &&   // 1-2 setters
+           counts.blocker >= 1 && counts.blocker <= 2 && // 1-2 blockers
+           counts.attacker >= 1 && counts.attacker <= 2 && // 1-2 attackers
+           counts.universal >= 1 && counts.universal <= 2 && // 1-2 universal
            creditsUsed <= TOTAL_CREDITS;
   };
 
@@ -472,14 +480,17 @@ const TeamCreatePage: React.FC = () => {
               >
                 <div className="text-sm font-medium">{category.short}</div>
                 <div className="text-xs">
-                  {counts[category.key]}/{MAX_PLAYERS_PER_CATEGORY} selected
+                  {counts[category.key]}/{getCategoryConstraints(category.key).max} selected
                 </div>
                 <div className={`text-xs mt-1 ${
                   counts[category.key] === 0 ? 'text-red-500' : 
-                  counts[category.key] >= MIN_PLAYERS_PER_CATEGORY ? 'text-green-600' : 'text-orange-500'
+                  counts[category.key] >= getCategoryConstraints(category.key).min && 
+                  counts[category.key] <= getCategoryConstraints(category.key).max ? 'text-green-600' : 'text-orange-500'
                 }`}>
                   {counts[category.key] === 0 ? 'Required' : 
-                   counts[category.key] >= MIN_PLAYERS_PER_CATEGORY ? '✓' : 'Need more'}
+                   counts[category.key] >= getCategoryConstraints(category.key).min && 
+                   counts[category.key] <= getCategoryConstraints(category.key).max ? '✓' : 
+                   category.key === 'libero' ? 'Need exactly 1' : 'Need 1-2'}
                 </div>
               </button>
             ))}
@@ -566,7 +577,7 @@ const TeamCreatePage: React.FC = () => {
                     {!canSelectPlayer(player) && !isPlayerSelected(player.playerId) && (
                       <span className="text-xs text-red-500 mt-1 text-center">
                         {creditsUsed + player.credits > TOTAL_CREDITS ? 'Budget' :
-                         getCategoryRequirement()[player.category] >= MAX_PLAYERS_PER_CATEGORY ? 'Max Cat' :
+                         getCategoryRequirement()[player.category] >= getCategoryConstraints(player.category).max ? 'Max Cat' :
                          selectedPlayers.filter(p => p.team === player.team).length >= MAX_PLAYERS_PER_TEAM ? 'Max Team' :
                          'Rules'}
                       </span>
@@ -583,35 +594,43 @@ const TeamCreatePage: React.FC = () => {
           <h3 className="font-medium text-gray-800 mb-3">Volleyball Team Rules</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between items-center">
-              <span>Setters:</span>
+              <span>Libero:</span>
               <span className={`font-medium ${
-                counts.setter >= MIN_PLAYERS_PER_CATEGORY ? 'text-green-600' : 'text-red-600'
+                counts.libero === 1 ? 'text-green-600' : 'text-red-600'
               }`}>
-                {counts.setter}/{MAX_PLAYERS_PER_CATEGORY} (min {MIN_PLAYERS_PER_CATEGORY})
+                {counts.libero}/1 (exactly 1)
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span>Attackers:</span>
+              <span>Setters:</span>
               <span className={`font-medium ${
-                counts.attacker >= MIN_PLAYERS_PER_CATEGORY ? 'text-green-600' : 'text-red-600'
+                counts.setter >= 1 && counts.setter <= 2 ? 'text-green-600' : 'text-red-600'
               }`}>
-                {counts.attacker}/{MAX_PLAYERS_PER_CATEGORY} (min {MIN_PLAYERS_PER_CATEGORY})
+                {counts.setter}/1-2
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span>Blockers:</span>
               <span className={`font-medium ${
-                counts.blocker >= MIN_PLAYERS_PER_CATEGORY ? 'text-green-600' : 'text-red-600'
+                counts.blocker >= 1 && counts.blocker <= 2 ? 'text-green-600' : 'text-red-600'
               }`}>
-                {counts.blocker}/{MAX_PLAYERS_PER_CATEGORY} (min {MIN_PLAYERS_PER_CATEGORY})
+                {counts.blocker}/1-2
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Attackers:</span>
+              <span className={`font-medium ${
+                counts.attacker >= 1 && counts.attacker <= 2 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {counts.attacker}/1-2
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span>Universal:</span>
               <span className={`font-medium ${
-                counts.universal >= MIN_PLAYERS_PER_CATEGORY ? 'text-green-600' : 'text-red-600'
+                counts.universal >= 1 && counts.universal <= 2 ? 'text-green-600' : 'text-red-600'
               }`}>
-                {counts.universal}/{MAX_PLAYERS_PER_CATEGORY} (min {MIN_PLAYERS_PER_CATEGORY})
+                {counts.universal}/1-2
               </span>
             </div>
             <div className="border-t pt-2 mt-2">

@@ -18,7 +18,7 @@ interface Player {
   playerId: string;
   name: string;
   team: string;
-  category: 'setter' | 'blocker' | 'attacker' | 'universal';
+  category: 'libero' | 'setter' | 'blocker' | 'attacker' | 'universal';
   credits: number;
   imageUrl: string;
   lastMatchPoints: number;
