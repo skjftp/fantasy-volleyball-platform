@@ -46,28 +46,63 @@ const MyTeamsPage: React.FC = () => {
 
   const fetchUserTeams = async () => {
     try {
-      if (!user?.uid) return;
+      if (!user?.uid) {
+        console.log('No user UID found');
+        return;
+      }
 
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
-      const response = await fetch(`${apiUrl}/users/${user.uid}/teams`);
+      console.log('Fetching teams for user:', user.uid);
+      console.log('API URL:', `${apiUrl}/users/${user.uid}/teams`);
+      
+      // Get auth token from localStorage
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        console.error('No auth token found');
+        throw new Error('Authentication required');
+      }
+      
+      const response = await fetch(`${apiUrl}/users/${user.uid}/teams`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      console.log('Teams API Response status:', response.status);
+      console.log('Teams API Response headers:', response.headers);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch teams');
+        const errorText = await response.text();
+        console.error('Teams API Error Response:', errorText);
+        throw new Error(`Failed to fetch teams: ${response.status} - ${errorText}`);
       }
       
       const teamsData = await response.json();
+      console.log('Teams data received:', teamsData);
       setTeams(teamsData || []);
       
       // Fetch match details for teams
       if (teamsData && teamsData.length > 0) {
-        const matchesResponse = await fetch(`${apiUrl}/matches`);
-        const matchesData = await matchesResponse.json();
-        
-        const matchesMap: { [key: string]: Match } = {};
-        matchesData.forEach((match: Match) => {
-          matchesMap[match.matchId] = match;
+        console.log('Fetching match details for teams');
+        const matchesResponse = await fetch(`${apiUrl}/matches`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
-        setMatches(matchesMap);
+        
+        if (matchesResponse.ok) {
+          const matchesData = await matchesResponse.json();
+          console.log('Matches data received:', matchesData);
+          
+          const matchesMap: { [key: string]: Match } = {};
+          matchesData.forEach((match: Match) => {
+            matchesMap[match.matchId] = match;
+          });
+          setMatches(matchesMap);
+        } else {
+          console.error('Failed to fetch matches:', matchesResponse.status);
+        }
       }
     } catch (error) {
       console.error('Error fetching teams:', error);
@@ -83,6 +118,9 @@ const MyTeamsPage: React.FC = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your teams...</p>
+          {process.env.NODE_ENV === 'development' && (
+            <p className="text-xs text-gray-400 mt-2">User ID: {user?.uid}</p>
+          )}
         </div>
       </div>
     );
@@ -112,6 +150,15 @@ const MyTeamsPage: React.FC = () => {
             <p className="text-gray-600 mb-6">
               Create your first volleyball team to get started!
             </p>
+            
+            {process.env.NODE_ENV === 'development' && (
+              <div className="bg-gray-100 p-4 rounded-lg mb-6 text-left max-w-md mx-auto">
+                <p className="text-xs text-gray-600 mb-2"><strong>Debug Info:</strong></p>
+                <p className="text-xs text-gray-600">User ID: {user?.uid}</p>
+                <p className="text-xs text-gray-600">Match ID: {matchId || 'None'}</p>
+                <p className="text-xs text-gray-600">Teams Count: {teams.length}</p>
+              </div>
+            )}
             
             <Link 
               to={matchId ? `/match/${matchId}/create-team` : "/"}
