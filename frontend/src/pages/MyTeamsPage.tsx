@@ -112,7 +112,7 @@ const MyTeamsPage: React.FC = () => {
                   // Create a fallback player object
                   playersWithDetails.push({
                     playerId,
-                    name: `Player ${playerId}`,
+                    name: 'Unknown Player',
                     team: 'Unknown',
                     category: 'universal' as const,
                     credits: 0,
@@ -317,8 +317,8 @@ const MyTeamsPage: React.FC = () => {
                         {process.env.NODE_ENV === 'development' && (
                           <div className="text-xs">
                             <p>Debug: No captain/VC data found</p>
-                            <p>CaptainID: {team.captainId}</p>
-                            <p>ViceCaptainID: {team.viceCaptainId}</p>
+                            <p>Captain: {team.players?.find(p => p.playerId === team.captainId)?.name || 'Not found'}</p>
+                            <p>Vice-Captain: {team.players?.find(p => p.playerId === team.viceCaptainId)?.name || 'Not found'}</p>
                             <p>Players: {team.players?.length || 0}</p>
                           </div>
                         )}
