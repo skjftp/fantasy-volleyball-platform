@@ -79,7 +79,62 @@ const MyTeamsPage: React.FC = () => {
       
       const teamsData = await response.json();
       console.log('Teams data received:', teamsData);
-      setTeams(teamsData || []);
+      
+      // Process teams data to fetch complete player information
+      const processedTeams = [];
+      
+      for (const team of teamsData || []) {
+        console.log('Processing team:', team);
+        
+        // If players are just IDs, fetch player details
+        if (team.players && team.players.length > 0) {
+          const playersWithDetails = [];
+          
+          for (const playerId of team.players) {
+            try {
+              // Check if playerId is already a full object or just an ID
+              if (typeof playerId === 'object' && playerId.playerId) {
+                playersWithDetails.push(playerId);
+              } else if (typeof playerId === 'string') {
+                // Fetch player details from API
+                const playerResponse = await fetch(`${apiUrl}/players/${playerId}`, {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  }
+                });
+                
+                if (playerResponse.ok) {
+                  const playerData = await playerResponse.json();
+                  playersWithDetails.push(playerData);
+                } else {
+                  console.warn('Failed to fetch player details for:', playerId);
+                  // Create a fallback player object
+                  playersWithDetails.push({
+                    playerId,
+                    name: `Player ${playerId}`,
+                    team: 'Unknown',
+                    category: 'universal' as const,
+                    credits: 0,
+                    imageUrl: 'https://randomuser.me/api/portraits/men/1.jpg',
+                    lastMatchPoints: 0,
+                    selectionPercentage: 0
+                  });
+                }
+              }
+            } catch (error) {
+              console.error('Error fetching player details:', error);
+            }
+          }
+          
+          processedTeams.push({ ...team, players: playersWithDetails });
+        } else {
+          processedTeams.push(team);
+        }
+      }
+      
+      console.log('Processed teams with player details:', processedTeams);
+      setTeams(processedTeams);
       
       // Fetch match details for teams
       if (teamsData && teamsData.length > 0) {
@@ -177,6 +232,15 @@ const MyTeamsPage: React.FC = () => {
               const captain = team.players?.find(p => p.playerId === team.captainId);
               const viceCaptain = team.players?.find(p => p.playerId === team.viceCaptainId);
               
+              // Debug logging
+              console.log('Team:', team.teamName, {
+                captainId: team.captainId,
+                viceCaptainId: team.viceCaptainId,
+                playersCount: team.players?.length,
+                captain: captain ? captain.name : 'Not found',
+                viceCaptain: viceCaptain ? viceCaptain.name : 'Not found'
+              });
+              
               return (
                 <div key={team.teamId} className="bg-white rounded-lg p-4 border shadow-sm">
                   {/* Team Header */}
@@ -201,7 +265,7 @@ const MyTeamsPage: React.FC = () => {
                   </div>
 
                   {/* Captain and Vice-Captain Section */}
-                  {(captain || viceCaptain) && (
+                  {(captain || viceCaptain) ? (
                     <div className="bg-gray-50 rounded-lg p-3 mb-3">
                       <div className="flex items-center space-x-4">
                         {captain && (
@@ -245,6 +309,20 @@ const MyTeamsPage: React.FC = () => {
                             </div>
                           </div>
                         )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 rounded-lg p-3 mb-3">
+                      <div className="text-center text-sm text-gray-600">
+                        {process.env.NODE_ENV === 'development' && (
+                          <div className="text-xs">
+                            <p>Debug: No captain/VC data found</p>
+                            <p>CaptainID: {team.captainId}</p>
+                            <p>ViceCaptainID: {team.viceCaptainId}</p>
+                            <p>Players: {team.players?.length || 0}</p>
+                          </div>
+                        )}
+                        Captain & Vice-Captain information loading...
                       </div>
                     </div>
                   )}
