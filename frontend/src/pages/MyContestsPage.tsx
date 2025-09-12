@@ -10,6 +10,23 @@ interface JoinedMatch {
   league: string;
   joinedContests: number;
   totalTeams: number;
+  status: 'upcoming' | 'live' | 'completed';
+}
+
+interface JoinedContest {
+  contestId: string;
+  contestName: string;
+  entryFee: number;
+  totalPrizePool: number;
+  maxSpots: number;
+  joinedUsers: number;
+  userTeams: {
+    teamId: string;
+    teamName: string;
+    points: number;
+    rank?: number;
+  }[];
+  status: 'upcoming' | 'live' | 'completed';
 }
 
 const MyContestsPage: React.FC = () => {
@@ -18,6 +35,10 @@ const MyContestsPage: React.FC = () => {
   const location = useLocation();
   const [joinedMatches, setJoinedMatches] = useState<JoinedMatch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'live' | 'completed'>('live');
+  const [selectedMatchContests, setSelectedMatchContests] = useState<JoinedContest[]>([]);
+  const [showMatchContests, setShowMatchContests] = useState(false);
+  const [selectedMatchInfo, setSelectedMatchInfo] = useState<JoinedMatch | null>(null);
 
   // Check if we're in match-specific context
   const isMatchSpecific = location.pathname.includes('/match/');
@@ -72,21 +93,37 @@ const MyContestsPage: React.FC = () => {
             matchContestMap[contest.matchId].teams += contest.teamsCount || 1;
           });
           
-          // Create joined matches array
+          // Create joined matches array with status
+          const now = new Date();
           const joinedMatchesData = Object.keys(matchContestMap).map(matchId => {
             const match = matchesData.find((m: any) => m.matchId === matchId);
             if (!match) return null;
+            
+            const matchTime = match.startTime?.seconds ? 
+              new Date(match.startTime.seconds * 1000) : 
+              new Date(match.startTime);
+            
+            let status: 'upcoming' | 'live' | 'completed';
+            const timeDiff = matchTime.getTime() - now.getTime();
+            const hoursUntilMatch = timeDiff / (1000 * 60 * 60);
+            
+            if (hoursUntilMatch > 0) {
+              status = 'upcoming';
+            } else if (hoursUntilMatch > -3) { // Consider live for 3 hours after start
+              status = 'live';
+            } else {
+              status = 'completed';
+            }
             
             return {
               matchId: match.matchId,
               team1: match.team1,
               team2: match.team2,
-              startTime: match.startTime?.seconds ? 
-                new Date(match.startTime.seconds * 1000).toISOString() : 
-                match.startTime,
+              startTime: matchTime.toISOString(),
               league: match.leagueId || match.league || 'Volleyball League',
               joinedContests: matchContestMap[matchId].contests,
-              totalTeams: matchContestMap[matchId].teams
+              totalTeams: matchContestMap[matchId].teams,
+              status
             };
           }).filter(Boolean);
           
@@ -108,17 +145,63 @@ const MyContestsPage: React.FC = () => {
     }
   };
 
+  const fetchMatchContests = async (matchId: string) => {
+    if (!user?.uid) return;
+    
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      
+      // Fetch user's joined contests for this specific match
+      const response = await fetch(`${apiUrl}/users/${user.uid}/contests?matchId=${matchId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const contestsData = await response.json();
+        console.log('Match contests data:', contestsData);
+        setSelectedMatchContests(contestsData || []);
+      } else {
+        console.error('Failed to fetch match contests');
+        setSelectedMatchContests([]);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching match contests:', error);
+      setSelectedMatchContests([]);
+    }
+  };
+
+  const handleMatchClick = (match: JoinedMatch) => {
+    setSelectedMatchInfo(match);
+    setShowMatchContests(true);
+    fetchMatchContests(match.matchId);
+  };
+
   const formatTimeLeft = (startTime: string) => {
     const now = new Date();
     const matchTime = new Date(startTime);
     const diff = matchTime.getTime() - now.getTime();
 
-    if (diff <= 0) return 'LIVE';
+    if (diff <= 0) {
+      const hoursAfter = Math.abs(diff) / (1000 * 60 * 60);
+      if (hoursAfter <= 3) return 'LIVE';
+      return 'COMPLETED';
+    }
 
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     return `${hours}h ${minutes}m Left`;
+  };
+  
+  const getFilteredMatches = () => {
+    return joinedMatches.filter(match => match.status === activeTab);
   };
 
   if (loading) {

@@ -10,6 +10,7 @@ import ContestsPage from './pages/ContestsPage';
 import MyContestsPage from './pages/MyContestsPage';
 import MyTeamsPage from './pages/MyTeamsPage';
 import MyProfilePage from './pages/MyProfilePage';
+import ContestLeaderboardPage from './pages/ContestLeaderboardPage';
 import LoadingSpinner from './components/LoadingSpinner';
 
 // Protected Route Component
@@ -136,6 +137,15 @@ function AppRoutes() {
             element={
               <ProtectedRoute>
                 <MyProfilePage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/contest/:contestId/leaderboard" 
+            element={
+              <ProtectedRoute>
+                <ContestLeaderboardPage />
               </ProtectedRoute>
             } 
           />

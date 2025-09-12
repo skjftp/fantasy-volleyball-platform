@@ -188,21 +188,26 @@ const ContestsPage: React.FC = () => {
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
       
       // Join contest with selected teams
-      for (const teamId of selectedTeamIds) {
-        const response = await fetch(`${apiUrl}/contests/${selectedContest.contestId}/join`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ teamId })
-        });
+      const response = await fetch(`${apiUrl}/contests/${selectedContest.contestId}/join`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          teamIds: selectedTeamIds,
+          userId: user?.uid,
+          matchId: matchId
+        })
+      });
 
-        if (!response.ok) {
-          const error = await response.text();
-          throw new Error(error);
-        }
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
       }
+      
+      const joinResult = await response.json();
+      console.log('Contest join result:', joinResult);
 
       // Success - update UI
       alert(`Successfully joined contest with ${selectedTeamIds.length} team${selectedTeamIds.length > 1 ? 's' : ''}!`);
