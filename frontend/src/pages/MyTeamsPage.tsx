@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 interface UserTeam {
@@ -36,6 +36,7 @@ interface Match {
 const MyTeamsPage: React.FC = () => {
   const { user } = useAuth();
   const { matchId } = useParams<{ matchId: string }>();
+  const navigate = useNavigate();
   const [teams, setTeams] = useState<UserTeam[]>([]);
   const [matches, setMatches] = useState<{ [key: string]: Match }>({});
   const [loading, setLoading] = useState(true);
@@ -225,8 +226,18 @@ const MyTeamsPage: React.FC = () => {
       {/* Header */}
       <header className="bg-red-600 text-white">
         <div className="container py-3">
-          <div className="text-center">
+          <div className="flex items-center justify-between">
+            <button 
+              onClick={() => navigate('/')}
+              className="flex items-center text-white hover:text-gray-200"
+            >
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11a2 2 0 010-2.828L6.293 4.465a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+              Back
+            </button>
             <h1 className="text-xl font-bold">My Teams</h1>
+            <div className="w-16"></div>
           </div>
         </div>
       </header>

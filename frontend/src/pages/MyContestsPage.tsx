@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useParams, useLocation } from 'react-router-dom';
+import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 interface JoinedMatch {
@@ -14,20 +14,78 @@ interface JoinedMatch {
 }
 
 
+interface JoinedContest {
+  contestId: string;
+  contestName: string;
+  entryFee: number;
+  totalPrizePool: number;
+  spotsLeft: number;
+  joinedUsers: number;
+  userTeams: {
+    teamId: string;
+    teamName: string;
+    points: number;
+    rank?: number;
+  }[];
+  status: string;
+}
+
 const MyContestsPage: React.FC = () => {
   const { user } = useAuth();
   const { matchId } = useParams<{ matchId: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const [joinedMatches, setJoinedMatches] = useState<JoinedMatch[]>([]);
+  const [joinedContests, setJoinedContests] = useState<JoinedContest[]>([]);
   const [loading, setLoading] = useState(true);
-  // const [activeTab] = useState<'upcoming' | 'live' | 'completed'>('live');
 
   // Check if we're in match-specific context
   const isMatchSpecific = location.pathname.includes('/match/');
 
   useEffect(() => {
-    fetchJoinedMatches();
-  }, [matchId]);
+    if (isMatchSpecific && matchId) {
+      fetchMatchContests();
+    } else {
+      fetchJoinedMatches();
+    }
+  }, [matchId, isMatchSpecific]);
+
+  const fetchMatchContests = async () => {
+    if (!user?.uid || !matchId) return;
+    
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      
+      // Fetch user's joined contests for this specific match
+      const response = await fetch(`${apiUrl}/users/${user.uid}/contests?matchId=${matchId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const contestsData = await response.json();
+        console.log('Match contests data:', contestsData);
+        setJoinedContests(contestsData || []);
+      } else {
+        console.log('No joined contests found for this match');
+        setJoinedContests([]);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching match contests:', error);
+      setJoinedContests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchJoinedMatches = async () => {
     try {
@@ -162,15 +220,92 @@ const MyContestsPage: React.FC = () => {
       {/* Header */}
       <header className="bg-red-600 text-white">
         <div className="container py-3">
-          <div className="text-center">
-            <h1 className="text-xl font-bold">My Contests</h1>
+          <div className="flex items-center justify-between">
+            {isMatchSpecific ? (
+              <>
+                <button 
+                  onClick={() => navigate('/')}
+                  className="flex items-center text-white hover:text-gray-200"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11a2 2 0 010-2.828L6.293 4.465a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                  </svg>
+                  Back
+                </button>
+                <h1 className="text-xl font-bold">My Contests</h1>
+                <div className="w-16"></div>
+              </>
+            ) : (
+              <div className="w-full text-center">
+                <h1 className="text-xl font-bold">My Contests</h1>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       {/* Content */}
       <main className="container py-4">
-        {joinedMatches.length === 0 ? (
+        {isMatchSpecific ? (
+          /* Match-specific contests view */
+          joinedContests.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-800 mb-2">No contests joined</h3>
+              <p className="text-gray-600">You haven't joined any contests for this match yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {joinedContests.map((contest) => (
+                <div key={contest.contestId} className="bg-white rounded-lg border shadow-sm">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold text-gray-800">{contest.contestName}</h3>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-green-600">₹{contest.totalPrizePool?.toLocaleString() || '0'}</div>
+                        <div className="text-xs text-gray-600">Total Prize</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
+                      <span>Entry Fee: ₹{contest.entryFee}</span>
+                      <span>{contest.spotsLeft} spots left</span>
+                    </div>
+                    
+                    <div className="space-y-2 mb-3">
+                      {contest.userTeams.map((team) => (
+                        <div key={team.teamId} className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                          <span className="font-medium text-blue-800">{team.teamName}</span>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm text-blue-700">{team.points} pts</span>
+                            {team.rank && team.rank > 0 && (
+                              <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">
+                                Rank #{team.rank}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <Link
+                      to={`/contest/${contest.contestId}/leaderboard`}
+                      className="w-full bg-red-600 text-white py-2 rounded text-center font-medium hover:bg-red-700 transition-colors block"
+                    >
+                      View Leaderboard
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        ) : (
+          /* General My Contests view */
+          joinedMatches.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-10 h-10 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -273,6 +408,7 @@ const MyContestsPage: React.FC = () => {
               </Link>
             ))}
           </div>
+        )
         )}
       </main>
 
