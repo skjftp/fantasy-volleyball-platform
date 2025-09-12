@@ -7,11 +7,22 @@ interface UserTeam {
   teamName: string;
   matchId: string;
   contestId: string;
-  players: string[];
+  players: Player[];
   captainId: string;
   viceCaptainId: string;
   totalPoints: number;
   rank: number;
+}
+
+interface Player {
+  playerId: string;
+  name: string;
+  team: string;
+  category: 'setter' | 'blocker' | 'attacker' | 'universal';
+  credits: number;
+  imageUrl: string;
+  lastMatchPoints: number;
+  selectionPercentage: number;
 }
 
 interface Match {
@@ -38,8 +49,12 @@ const MyTeamsPage: React.FC = () => {
 
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
       const response = await fetch(`${apiUrl}/users/${user.uid}/teams`);
-      const teamsData = await response.json();
       
+      if (!response.ok) {
+        throw new Error('Failed to fetch teams');
+      }
+      
+      const teamsData = await response.json();
       setTeams(teamsData || []);
       
       // Fetch match details for teams
@@ -55,20 +70,7 @@ const MyTeamsPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching teams:', error);
-      // Mock data for development
-      setTeams([
-        {
-          teamId: 'team_1',
-          teamName: 'T1',
-          matchId: 'match_1',
-          contestId: 'contest_1',
-          players: ['player_1', 'player_2', 'player_3', 'player_4', 'player_5', 'player_6'],
-          captainId: 'player_2',
-          viceCaptainId: 'player_5',
-          totalPoints: 0,
-          rank: 0
-        }
-      ]);
+      setTeams([]);
     } finally {
       setLoading(false);
     }
@@ -115,19 +117,22 @@ const MyTeamsPage: React.FC = () => {
               className="inline-flex items-center bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
             >
               <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
               </svg>
-              Create Your First Team
+              Create Team
             </Link>
           </div>
         ) : (
           <div className="space-y-4">
             {teams.map((team) => {
               const match = matches[team.matchId];
+              const captain = team.players?.find(p => p.playerId === team.captainId);
+              const viceCaptain = team.players?.find(p => p.playerId === team.viceCaptainId);
               
               return (
                 <div key={team.teamId} className="bg-white rounded-lg p-4 border shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
+                  {/* Team Header */}
+                  <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="bg-red-600 text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold">
                         {team.teamName}
@@ -147,9 +152,59 @@ const MyTeamsPage: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Captain and Vice-Captain Section */}
+                  {(captain || viceCaptain) && (
+                    <div className="bg-gray-50 rounded-lg p-3 mb-3">
+                      <div className="flex items-center space-x-4">
+                        {captain && (
+                          <div className="flex items-center space-x-2 flex-1">
+                            <img 
+                              src={captain.imageUrl || 'https://randomuser.me/api/portraits/men/1.jpg'} 
+                              alt={captain.name}
+                              className="w-8 h-8 rounded-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = 'https://randomuser.me/api/portraits/men/1.jpg';
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium text-gray-900 truncate">{captain.name}</div>
+                              <div className="flex items-center space-x-1">
+                                <span className="text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded font-medium">C</span>
+                                <span className="text-xs text-gray-600">{captain.team}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {viceCaptain && (
+                          <div className="flex items-center space-x-2 flex-1">
+                            <img 
+                              src={viceCaptain.imageUrl || 'https://randomuser.me/api/portraits/men/2.jpg'} 
+                              alt={viceCaptain.name}
+                              className="w-8 h-8 rounded-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = 'https://randomuser.me/api/portraits/men/2.jpg';
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium text-gray-900 truncate">{viceCaptain.name}</div>
+                              <div className="flex items-center space-x-1">
+                                <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-medium">VC</span>
+                                <span className="text-xs text-gray-600">{viceCaptain.team}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Team Stats */}
                   <div className="flex items-center justify-between text-sm">
                     <div className="text-gray-600">
-                      6 Players • C & VC Selected
+                      {team.players?.length || 6} Players • C & VC Selected
                     </div>
                     <div className="flex items-center space-x-2">
                       {team.rank > 0 ? (
