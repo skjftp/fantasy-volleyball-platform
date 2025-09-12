@@ -29,77 +29,55 @@ const PointSystemModal: React.FC<PointSystemModalProps> = ({ isOpen, onClose }) 
         {/* Content */}
         <div className="p-6 max-h-96 overflow-y-auto">
           <div className="space-y-6">
-            {/* Attacking Points */}
+            {/* Set Participation */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">🏐 Attacking</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">🏐 Set Participation</h3>
               <div className="space-y-2">
                 <div className="flex justify-between items-center p-2 bg-green-50 rounded">
-                  <span className="text-sm text-gray-700">Attack Kill</span>
-                  <span className="font-medium text-green-600">+2 points</span>
+                  <span className="text-sm text-gray-700">Set Starter</span>
+                  <span className="font-medium text-green-600">+6 points</span>
                 </div>
-                <div className="flex justify-between items-center p-2 bg-red-50 rounded">
-                  <span className="text-sm text-gray-700">Attack Error</span>
-                  <span className="font-medium text-red-600">-1 point</span>
+                <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
+                  <span className="text-sm text-gray-700">Set Substitute</span>
+                  <span className="font-medium text-blue-600">+3 points</span>
                 </div>
               </div>
             </div>
 
-            {/* Serving Points */}
+            {/* Set Results */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">🎯 Serving</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">🏆 Set Results</h3>
               <div className="space-y-2">
                 <div className="flex justify-between items-center p-2 bg-green-50 rounded">
-                  <span className="text-sm text-gray-700">Service Ace</span>
+                  <span className="text-sm text-gray-700">Sets won as Playing VI</span>
+                  <span className="font-medium text-green-600">+6 points</span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-red-50 rounded">
+                  <span className="text-sm text-gray-700">Sets lost as Playing VI</span>
+                  <span className="font-medium text-red-600">-3 points</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Individual Performance */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">💪 Individual Performance</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center p-2 bg-green-50 rounded">
+                  <span className="text-sm text-gray-700">Attack</span>
                   <span className="font-medium text-green-600">+3 points</span>
                 </div>
-                <div className="flex justify-between items-center p-2 bg-red-50 rounded">
-                  <span className="text-sm text-gray-700">Service Error</span>
-                  <span className="font-medium text-red-600">-1 point</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Blocking Points */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">🛡️ Blocking</h3>
-              <div className="space-y-2">
                 <div className="flex justify-between items-center p-2 bg-green-50 rounded">
-                  <span className="text-sm text-gray-700">Successful Block</span>
-                  <span className="font-medium text-green-600">+2 points</span>
+                  <span className="text-sm text-gray-700">Reception</span>
+                  <span className="font-medium text-green-600">+3 points</span>
                 </div>
-                <div className="flex justify-between items-center p-2 bg-red-50 rounded">
-                  <span className="text-sm text-gray-700">Block Error</span>
-                  <span className="font-medium text-red-600">-1 point</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Reception Points */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">📡 Reception</h3>
-              <div className="space-y-2">
                 <div className="flex justify-between items-center p-2 bg-green-50 rounded">
-                  <span className="text-sm text-gray-700">Successful Reception</span>
-                  <span className="font-medium text-green-600">+1 point</span>
+                  <span className="text-sm text-gray-700">Ace</span>
+                  <span className="font-medium text-green-600">+20 points</span>
                 </div>
-                <div className="flex justify-between items-center p-2 bg-red-50 rounded">
-                  <span className="text-sm text-gray-700">Reception Error</span>
-                  <span className="font-medium text-red-600">-1 point</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Bonus Points */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">⭐ Bonus Points</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
-                  <span className="text-sm text-gray-700">Playing in Starting 6</span>
-                  <span className="font-medium text-blue-600">+2 points</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
-                  <span className="text-sm text-gray-700">Playing as Substitute</span>
-                  <span className="font-medium text-blue-600">+1 point</span>
+                <div className="flex justify-between items-center p-2 bg-green-50 rounded">
+                  <span className="text-sm text-gray-700">Block</span>
+                  <span className="font-medium text-green-600">+20 points</span>
                 </div>
               </div>
             </div>
@@ -123,10 +101,11 @@ const PointSystemModal: React.FC<PointSystemModalProps> = ({ isOpen, onClose }) 
             <div className="bg-gray-50 p-4 rounded-lg">
               <h4 className="font-semibold text-gray-800 mb-2">📝 Important Notes:</h4>
               <ul className="text-sm text-gray-600 space-y-1">
-                <li>• Points are calculated in real-time during matches</li>
-                <li>• Captain and Vice-Captain multipliers apply to all points</li>
-                <li>• Negative points are possible for errors</li>
-                <li>• Final scores determine contest rankings</li>
+                <li>• Points are calculated based on actual match performance</li>
+                <li>• Captain gets 2x points, Vice-Captain gets 1.5x points</li>
+                <li>• Playing VI refers to starting lineup participation</li>
+                <li>• High-value actions like Ace and Block give maximum points</li>
+                <li>• Final scores determine contest rankings and prizes</li>
               </ul>
             </div>
           </div>
