@@ -143,7 +143,21 @@ const ContestsPage: React.FC = () => {
     });
   };
 
+  const isMatchLive = () => {
+    if (!match) return false;
+    const now = new Date();
+    const matchTime = new Date(match.startTime);
+    const timeDiff = matchTime.getTime() - now.getTime();
+    return timeDiff <= 0; // Match has started
+  };
+
   const handleJoinContest = (contest: Contest) => {
+    // Prevent joining contests for live or completed matches
+    if (isMatchLive()) {
+      alert('Cannot join contests for matches that have already started.');
+      return;
+    }
+    
     if (userTeams.length === 0) {
       // No teams for this match, redirect to create team
       navigate(`/match/${matchId}/create-team?contestId=${contest.contestId}`);
@@ -441,12 +455,21 @@ const ContestsPage: React.FC = () => {
 
                 {/* Join Button */}
                 <div className="p-4">
-                  <button 
-                    onClick={() => handleJoinContest(contest)}
-                    className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
-                  >
-                    JOIN CONTEST
-                  </button>
+                  {isMatchLive() ? (
+                    <button 
+                      disabled
+                      className="w-full bg-gray-400 text-white py-3 rounded-lg font-medium cursor-not-allowed"
+                    >
+                      MATCH STARTED - CANNOT JOIN
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => handleJoinContest(contest)}
+                      className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                    >
+                      JOIN CONTEST
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

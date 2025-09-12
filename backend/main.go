@@ -563,6 +563,41 @@ func (s *Server) createUserTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	ctx := context.Background()
+	
+	// Check if match is still upcoming (not live or completed)
+	matchDoc, err := s.firestoreClient.Collection("matches").Doc(teamRequest.MatchID).Get(ctx)
+	if err != nil {
+		http.Error(w, "Match not found", http.StatusNotFound)
+		return
+	}
+	
+	var match Match
+	matchDoc.DataTo(&match)
+	
+	// Parse match start time
+	matchTime, err := time.Parse(time.RFC3339, match.StartTime)
+	if err != nil {
+		// Try parsing as Unix timestamp or other formats
+		if match.StartTime != "" {
+			if timestamp, err2 := time.Parse("2006-01-02 15:04:05", match.StartTime); err2 == nil {
+				matchTime = timestamp
+			} else {
+				http.Error(w, "Invalid match start time format", http.StatusBadRequest)
+				return
+			}
+		} else {
+			http.Error(w, "Match start time not set", http.StatusBadRequest)
+			return
+		}
+	}
+	
+	// Check if match has already started
+	if time.Now().After(matchTime) {
+		http.Error(w, "Cannot create or edit teams for matches that have already started", http.StatusForbidden)
+		return
+	}
+	
 	// Validate team composition
 	if len(teamRequest.Players) != 6 {
 		http.Error(w, "Team must have exactly 6 players", http.StatusBadRequest)
@@ -585,8 +620,7 @@ func (s *Server) createUserTeam(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Add team to Firestore
-	ctx := context.Background()
-	_, err := s.firestoreClient.Collection("userTeams").Doc(userTeam.TeamID).Set(ctx, userTeam)
+	_, err = s.firestoreClient.Collection("userTeams").Doc(userTeam.TeamID).Set(ctx, userTeam)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -613,6 +647,39 @@ func (s *Server) joinContest(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	ctx := context.Background()
+	
+	// Check if match is still upcoming (not live or completed)
+	matchDoc, err := s.firestoreClient.Collection("matches").Doc(joinRequest.MatchID).Get(ctx)
+	if err != nil {
+		http.Error(w, "Match not found", http.StatusNotFound)
+		return
+	}
+	
+	var match Match
+	matchDoc.DataTo(&match)
+	
+	// Parse match start time
+	matchTime, err := time.Parse(time.RFC3339, match.StartTime)
+	if err != nil {
+		// Try parsing as Unix timestamp
+		if match.StartTime != "" {
+			if timestamp, err2 := time.Parse("2006-01-02 15:04:05", match.StartTime); err2 == nil {
+				matchTime = timestamp
+			} else {
+				http.Error(w, "Invalid match start time format", http.StatusBadRequest)
+				return
+			}
+		} else {
+			http.Error(w, "Match start time not set", http.StatusBadRequest)
+			return
+		}
+	}
+	
+	// Check if match has already started
+	if time.Now().After(matchTime) {
+		http.Error(w, "Cannot join contests for matches that have already started", http.StatusForbidden)
+		return
+	}
 	
 	// Get contest details to get entry fee
 	contestDoc, err := s.firestoreClient.Collection("contests").Doc(contestID).Get(ctx)

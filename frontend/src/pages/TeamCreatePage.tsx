@@ -324,7 +324,21 @@ const TeamCreatePage: React.FC = () => {
            creditsUsed <= TOTAL_CREDITS;
   };
 
+  const isMatchLive = () => {
+    if (!match) return false;
+    const now = new Date();
+    const matchTime = new Date(match.startTime);
+    const timeDiff = matchTime.getTime() - now.getTime();
+    return timeDiff <= 0; // Match has started
+  };
+
   const handleContinue = () => {
+    // Prevent team creation for live or completed matches
+    if (isMatchLive()) {
+      alert('Cannot create or edit teams for matches that have already started.');
+      return;
+    }
+    
     if (!isTeamValid()) {
       alert('Please complete your team according to the requirements.');
       return;
@@ -625,14 +639,14 @@ const TeamCreatePage: React.FC = () => {
             
             <button
               onClick={handleContinue}
-              disabled={!isTeamValid()}
+              disabled={!isTeamValid() || isMatchLive()}
               className={`py-3 rounded-lg font-medium transition-colors ${
-                isTeamValid()
+                isTeamValid() && !isMatchLive()
                   ? 'bg-gray-600 text-white hover:bg-gray-700'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              Continue
+              {isMatchLive() ? 'Match Started - Cannot Edit Team' : 'Continue'}
             </button>
           </div>
         </div>
