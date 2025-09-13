@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import pvlLogo from '../assets/pvl-logo.svg';
 
 interface Player {
   playerId: string;
@@ -109,7 +110,7 @@ const TeamCreatePage: React.FC = () => {
             matchId: matchId!,
             name: squadPlayer.playerName,
             team: squadPlayer.teamCode,
-            category: squadPlayer.category as 'setter' | 'attacker' | 'blocker' | 'universal',
+            category: squadPlayer.category as 'libero' | 'setter' | 'attacker' | 'blocker' | 'universal',
             credits: squadPlayer.credits,
             imageUrl: squadPlayer.playerImageUrl || 'https://randomuser.me/api/portraits/men/1.jpg',
             isStarting6: squadPlayer.isStarting6,
@@ -401,17 +402,20 @@ const TeamCreatePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-gray-900 text-white sticky top-0 z-10">
-        <div className="container py-4">
+      <header className="bg-black text-white sticky top-0 z-10">
+        <div className="container py-5">
           <div className="flex items-center justify-between">
-            <button 
-              onClick={() => navigate(-1)}
-              className="flex items-center text-white hover:text-gray-300"
-            >
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11a2 2 0 010-2.828L6.293 4.465a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z" clipRule="evenodd" />
-              </svg>
-            </button>
+            <div className="flex items-center">
+              <button 
+                onClick={() => navigate(-1)}
+                className="flex items-center text-white hover:text-gray-300 mr-4"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11a2 2 0 010-2.828L6.293 4.465a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+              <img src={pvlLogo} alt="Prime Volleyball League" className="h-12 w-auto" />
+            </div>
             
             <div className="text-center flex-1 mx-4">
               <div className="flex items-center justify-center space-x-4">

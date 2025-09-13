@@ -1,0 +1,102 @@
+[
+  {
+    "teamId": "team_ahmedabad_defenders",
+    "name": "Ahmedabad Defenders",
+    "code": "AHD",
+    "logo": "EXTRACT_FROM_WEBSITE",
+    "leagueId": "pvl_2025_season1",
+    "homeCity": "Ahmedabad",
+    "captain": "TBD",
+    "coach": "TBD"
+  },
+  {
+    "teamId": "team_bengaluru_torpedoes",
+    "name": "Bengaluru Torpedoes",
+    "code": "BEN",
+    "logo": "EXTRACT_FROM_WEBSITE",
+    "leagueId": "pvl_2025_season1",
+    "homeCity": "Bengaluru",
+    "captain": "TBD",
+    "coach": "TBD"
+  },
+  {
+    "teamId": "team_calicut_heroes",
+    "name": "Calicut Heroes",
+    "code": "CAL",
+    "logo": "EXTRACT_FROM_WEBSITE",
+    "leagueId": "pvl_2025_season1",
+    "homeCity": "Calicut",
+    "captain": "TBD",
+    "coach": "TBD"
+  },
+  {
+    "teamId": "team_chennai_blitz",
+    "name": "Chennai Blitz",
+    "code": "CHE",
+    "logo": "EXTRACT_FROM_WEBSITE",
+    "leagueId": "pvl_2025_season1",
+    "homeCity": "Chennai",
+    "captain": "TBD",
+    "coach": "TBD"
+  },
+  {
+    "teamId": "team_delhi_toofans",
+    "name": "Delhi Toofans",
+    "code": "DEL",
+    "logo": "EXTRACT_FROM_WEBSITE",
+    "leagueId": "pvl_2025_season1",
+    "homeCity": "Delhi",
+    "captain": "TBD",
+    "coach": "TBD"
+  },
+  {
+    "teamId": "team_goa_guardians",
+    "name": "Goa Guardians",
+    "code": "GOA",
+    "logo": "EXTRACT_FROM_WEBSITE",
+    "leagueId": "pvl_2025_season1",
+    "homeCity": "Goa",
+    "captain": "TBD",
+    "coach": "TBD"
+  },
+  {
+    "teamId": "team_hyderabad_hawks",
+    "name": "Hyderabad Black Hawks",
+    "code": "HYD",
+    "logo": "EXTRACT_FROM_WEBSITE",
+    "leagueId": "pvl_2025_season1",
+    "homeCity": "Hyderabad",
+    "captain": "TBD",
+    "coach": "TBD"
+  },
+  {
+    "teamId": "team_kochi_spikers",
+    "name": "Kochi Blue Spikers",
+    "code": "KOC",
+    "logo": "EXTRACT_FROM_WEBSITE",
+    "leagueId": "pvl_2025_season1",
+    "homeCity": "Kochi",
+    "captain": "TBD",
+    "coach": "TBD"
+  },
+  {
+    "teamId": "team_kolkata_thunderbolts",
+    "name": "Kolkata Thunderbolts",
+    "code": "KOL",
+    "logo": "EXTRACT_FROM_WEBSITE",
+    "leagueId": "pvl_2025_season1",
+    "homeCity": "Kolkata",
+    "captain": "TBD",
+    "coach": "TBD"
+  },
+  {
+    "teamId": "team_mumbai_meteors",
+    "name": "Mumbai Meteors",
+    "code": "MUM",
+    "logo": "EXTRACT_FROM_WEBSITE",
+    "leagueId": "pvl_2025_season1",
+    "homeCity": "Mumbai",
+    "captain": "TBD",
+    "coach": "TBD"
+  }
+]

@@ -1,0 +1,11 @@
+[
+  {
+    "playerId": "player_pvl_001",
+    "name": "EXTRACT_FROM_WEBSITE",
+    "imageUrl": "EXTRACT_FROM_WEBSITE",
+    "defaultCategory": "libero",
+    "defaultCredits": 8.5,
+    "dateOfBirth": "1995-01-15",
+    "nationality": "India"
+  }
+]

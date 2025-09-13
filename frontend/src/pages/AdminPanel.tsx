@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import pvlLogo from '../assets/pvl-logo.svg';
 
 interface Match {
   matchId: string;
@@ -46,7 +47,7 @@ const AdminPanel: React.FC = () => {
     matchId: '',
     name: '',
     team: '',
-    category: 'setter',
+    category: 'libero',
     credits: 8.0,
     imageUrl: '',
     isStarting6: true
@@ -167,7 +168,7 @@ const AdminPanel: React.FC = () => {
       if (response.ok) {
         alert('Player created successfully!');
         setNewPlayer({
-          matchId: '', name: '', team: '', category: 'setter',
+          matchId: '', name: '', team: '', category: 'libero',
           credits: 8.0, imageUrl: '', isStarting6: true
         });
         fetchPlayers();
@@ -185,17 +186,20 @@ const AdminPanel: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-red-600 text-white">
-        <div className="container py-4">
+      <header className="bg-black text-white">
+        <div className="container py-5">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold">PrimeV Admin Panel</h1>
-              <p className="text-red-100 text-sm">Match & Player Management</p>
+            <div className="flex items-center">
+              <img src={pvlLogo} alt="Prime Volleyball League" className="h-12 w-auto mr-4" />
+              <div>
+                <h1 className="text-xl font-bold">Admin Panel</h1>
+                <p className="text-gray-300 text-sm">Match & Player Management</p>
+              </div>
             </div>
             
             <button
               onClick={signOut}
-              className="bg-red-700 px-3 py-2 rounded-lg text-sm hover:bg-red-800 transition-colors"
+              className="bg-gray-800 px-3 py-2 rounded-lg text-sm hover:bg-gray-700 transition-colors"
             >
               Logout
             </button>
@@ -464,6 +468,7 @@ const AdminPanel: React.FC = () => {
                       className="input-field"
                       required
                     >
+                      <option value="libero">Libero</option>
                       <option value="setter">Setter</option>
                       <option value="attacker">Attacker</option>
                       <option value="blocker">Blocker</option>

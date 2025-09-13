@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import PointSystemModal from '../components/PointSystemModal';
+import pvlLogo from '../assets/pvl-logo.svg';
 
 interface Match {
   matchId: string;
@@ -139,14 +140,14 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-red-600 text-white">
-        <div className="container py-3">
+      <header className="bg-black text-white">
+        <div className="container py-5">
           <div className="flex items-center justify-between">
             <div className="w-8"></div>
-            <h1 className="text-xl font-bold">PrimeV Fantasy</h1>
+            <img src={pvlLogo} alt="Prime Volleyball League" className="h-12 w-auto" />
             <button
               onClick={() => setShowPointSystem(true)}
-              className="flex items-center text-white hover:text-red-200 transition-colors p-1"
+              className="flex items-center text-white hover:text-gray-300 transition-colors p-1"
               title="Fantasy Point System"
             >
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
