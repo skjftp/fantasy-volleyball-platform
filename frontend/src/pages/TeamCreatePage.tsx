@@ -715,13 +715,6 @@ const TeamCreatePage: React.FC = () => {
                   
                   {/* Position players on court intelligently */}
                   {(() => {
-                    // Smart positioning logic
-                    const liberos = selectedPlayers.filter(p => p.category === 'libero');
-                    const setters = selectedPlayers.filter(p => p.category === 'setter');
-                    const blockers = selectedPlayers.filter(p => p.category === 'blocker');
-                    const attackers = selectedPlayers.filter(p => p.category === 'attacker');
-                    const universals = selectedPlayers.filter(p => p.category === 'universal');
-                    
                     // Define 6 positions with priority order for each category
                     const positions = [
                       { position: 1, name: 'Back Right', x: 'right-4', y: 'top-8', priority: ['attacker', 'universal'] },
@@ -733,7 +726,7 @@ const TeamCreatePage: React.FC = () => {
                     ];
                     
                     // Distribute players to positions
-                    const assignedPositions = [];
+                    const assignedPositions: Array<{position: number, name: string, x: string, y: string, priority: string[], player: Player}> = [];
                     const availablePlayers = [...selectedPlayers];
                     
                     positions.forEach(pos => {
@@ -751,11 +744,13 @@ const TeamCreatePage: React.FC = () => {
                     positions.forEach(pos => {
                       if (!assignedPositions.find(ap => ap.position === pos.position) && availablePlayers.length > 0) {
                         const player = availablePlayers.shift();
-                        assignedPositions.push({ ...pos, player });
+                        if (player) {
+                          assignedPositions.push({ ...pos, player });
+                        }
                       }
                     });
                     
-                    const getPlayerColor = (category) => {
+                    const getPlayerColor = (category: string): string => {
                       switch (category) {
                         case 'setter': return 'bg-purple-500';
                         case 'attacker': return 'bg-red-500';
@@ -775,7 +770,7 @@ const TeamCreatePage: React.FC = () => {
                         >
                           <div className="text-center">
                             <div className={`w-12 h-12 ${getPlayerColor(player.category)} rounded-full flex items-center justify-center text-white text-xs font-bold mb-1`}>
-                              {player.name.split(' ').map(n => n[0]).join('')}
+                              {player.name.split(' ').map((n: string) => n[0]).join('')}
                             </div>
                             <div className="text-xs text-gray-700 font-medium max-w-16 truncate">
                               {player.name.split(' ')[0]}
