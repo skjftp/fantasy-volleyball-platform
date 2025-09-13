@@ -1,5 +1,5 @@
 // Team logo utility functions
-import { TEAM_LOGOS, TEAM_LOGOS_BY_CODE, getTeamLogo, getTeamLogoByCode } from '../assets/team-logos';
+import { getTeamLogo, getTeamLogoByCode } from '../assets/team-logos';
 
 // Convert database logo path to imported asset
 export const getTeamLogoSrc = (logoPath: string | undefined, teamId?: string): string => {
@@ -51,36 +51,17 @@ export const getTeamLogoByCodes = (teamCode: string): string => {
   return logo || '/src/assets/team-logos/default-team.png';
 };
 
-// React component helper for team logo img tag
-export const TeamLogo: React.FC<{
-  teamId?: string;
-  teamCode?: string;
-  logoPath?: string;
-  alt?: string;
-  className?: string;
-}> = ({ teamId, teamCode, logoPath, alt, className = "w-8 h-8" }) => {
-  let src: string;
-  
+// Helper function to get the appropriate logo src for a team logo component
+export const getTeamLogoForComponent = (
+  teamId?: string, 
+  teamCode?: string, 
+  logoPath?: string
+): string => {
   if (teamCode) {
-    src = getTeamLogoByCodes(teamCode);
+    return getTeamLogoByCodes(teamCode);
   } else if (teamId) {
-    src = getTeamLogo(teamId) || '/src/assets/team-logos/default-team.png';
+    return getTeamLogo(teamId) || '/src/assets/team-logos/default-team.png';
   } else {
-    src = getTeamLogoSrc(logoPath, teamId);
+    return getTeamLogoSrc(logoPath, teamId);
   }
-  
-  return (
-    <img 
-      src={src} 
-      alt={alt || 'Team Logo'} 
-      className={className}
-      onError={(e) => {
-        // Fallback if image fails to load
-        const target = e.target as HTMLImageElement;
-        target.src = '/src/assets/team-logos/default-team.png';
-      }}
-    />
-  );
 };
-
-export default TeamLogo;

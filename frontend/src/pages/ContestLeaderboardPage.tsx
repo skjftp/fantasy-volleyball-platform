@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import pvlLogo from '../assets/pvl-logo.svg';
 
 interface LeaderboardEntry {
   rank: number;
