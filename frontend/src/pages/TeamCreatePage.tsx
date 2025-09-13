@@ -2,6 +2,47 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import TeamLogo from '../components/TeamLogo';
 
+// Male caricature avatars for home and away teams
+const HomePlayerAvatar: React.FC<{ className?: string }> = ({ className = "w-12 h-12" }) => (
+  <svg className={className} viewBox="0 0 100 100" fill="none">
+    <circle cx="50" cy="50" r="48" fill="#3B82F6" stroke="#1E40AF" strokeWidth="2"/>
+    <circle cx="50" cy="35" r="18" fill="#FBBF24"/>
+    <circle cx="42" cy="32" r="2" fill="#1F2937"/>
+    <circle cx="58" cy="32" r="2" fill="#1F2937"/>
+    <path d="M45 40 Q50 45 55 40" stroke="#1F2937" strokeWidth="2" fill="none"/>
+    <path d="M35 25 Q50 15 65 25" fill="#8B4513"/>
+    <rect x="42" y="50" width="16" height="25" fill="#FBBF24"/>
+    <circle cx="38" cy="62" r="4" fill="#FBBF24"/>
+    <circle cx="62" cy="62" r="4" fill="#FBBF24"/>
+  </svg>
+);
+
+const AwayPlayerAvatar: React.FC<{ className?: string }> = ({ className = "w-12 h-12" }) => (
+  <svg className={className} viewBox="0 0 100 100" fill="none">
+    <circle cx="50" cy="50" r="48" fill="#EF4444" stroke="#DC2626" strokeWidth="2"/>
+    <circle cx="50" cy="35" r="18" fill="#F59E0B"/>
+    <circle cx="42" cy="32" r="2" fill="#1F2937"/>
+    <circle cx="58" cy="32" r="2" fill="#1F2937"/>
+    <path d="M45 40 Q50 45 55 40" stroke="#1F2937" strokeWidth="2" fill="none"/>
+    <path d="M35 25 Q50 15 65 25" fill="#8B4513"/>
+    <rect x="42" y="50" width="16" height="25" fill="#F59E0B"/>
+    <circle cx="38" cy="62" r="4" fill="#F59E0B"/>
+    <circle cx="62" cy="62" r="4" fill="#F59E0B"/>
+  </svg>
+);
+
+// Helper function to get the appropriate avatar based on team
+const getPlayerAvatar = (teamCode: string, match: Match | null, className?: string) => {
+  if (!match) return <HomePlayerAvatar className={className} />;
+  
+  // Determine if this is home team (team1) or away team (team2)
+  const isHomeTeam = teamCode === match.team1.code;
+  
+  return isHomeTeam ? 
+    <HomePlayerAvatar className={className} /> : 
+    <AwayPlayerAvatar className={className} />;
+};
+
 interface Player {
   playerId: string;
   matchId: string;
@@ -522,11 +563,7 @@ const TeamCreatePage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 flex-1">
                   <div className="relative">
-                    <img
-                      src={player.imageUrl}
-                      alt={player.name}
-                      className="w-12 h-12 rounded-full bg-gray-100"
-                    />
+                    {getPlayerAvatar(player.team, match, "w-12 h-12 rounded-full")}
                     {player.isStarting6 && (
                       <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                         <span className="text-white text-xs font-bold">✓</span>
