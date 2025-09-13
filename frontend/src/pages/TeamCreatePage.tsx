@@ -713,130 +713,83 @@ const TeamCreatePage: React.FC = () => {
                   <div className="absolute top-1/4 left-0 right-0 h-0.5 bg-white opacity-50"></div>
                   <div className="absolute top-3/4 left-0 right-0 h-0.5 bg-white opacity-50"></div>
                   
-                  {/* Position players on court */}
-                  {/* Back Row - Top Half */}
-                  <div className="absolute top-2 left-0 right-0 h-1/2">
-                    <div className="relative h-full grid grid-cols-3 gap-2 p-2">
-                      {/* Position 5 - Back Left */}
-                      <div className="flex flex-col items-center justify-center">
-                        {selectedPlayers.filter(p => p.category === 'universal').slice(0, 1).map(player => (
-                          <div key={player.playerId} className="text-center">
-                            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1">
+                  {/* Position players on court intelligently */}
+                  {(() => {
+                    // Smart positioning logic
+                    const liberos = selectedPlayers.filter(p => p.category === 'libero');
+                    const setters = selectedPlayers.filter(p => p.category === 'setter');
+                    const blockers = selectedPlayers.filter(p => p.category === 'blocker');
+                    const attackers = selectedPlayers.filter(p => p.category === 'attacker');
+                    const universals = selectedPlayers.filter(p => p.category === 'universal');
+                    
+                    // Define 6 positions with priority order for each category
+                    const positions = [
+                      { position: 1, name: 'Back Right', x: 'right-4', y: 'top-8', priority: ['attacker', 'universal'] },
+                      { position: 2, name: 'Front Right', x: 'right-4', y: 'bottom-8', priority: ['setter', 'universal'] },
+                      { position: 3, name: 'Front Center', x: 'left-1/2', y: 'bottom-8', priority: ['blocker', 'attacker', 'universal'] },
+                      { position: 4, name: 'Front Left', x: 'left-4', y: 'bottom-8', priority: ['attacker', 'blocker', 'universal'] },
+                      { position: 5, name: 'Back Left', x: 'left-4', y: 'top-8', priority: ['universal', 'attacker'] },
+                      { position: 6, name: 'Back Center', x: 'left-1/2', y: 'top-8', priority: ['libero', 'universal'] }
+                    ];
+                    
+                    // Distribute players to positions
+                    const assignedPositions = [];
+                    const availablePlayers = [...selectedPlayers];
+                    
+                    positions.forEach(pos => {
+                      for (const category of pos.priority) {
+                        const player = availablePlayers.find(p => p.category === category);
+                        if (player) {
+                          assignedPositions.push({ ...pos, player });
+                          availablePlayers.splice(availablePlayers.indexOf(player), 1);
+                          break;
+                        }
+                      }
+                    });
+                    
+                    // Fill remaining positions with any available players
+                    positions.forEach(pos => {
+                      if (!assignedPositions.find(ap => ap.position === pos.position) && availablePlayers.length > 0) {
+                        const player = availablePlayers.shift();
+                        assignedPositions.push({ ...pos, player });
+                      }
+                    });
+                    
+                    const getPlayerColor = (category) => {
+                      switch (category) {
+                        case 'setter': return 'bg-purple-500';
+                        case 'attacker': return 'bg-red-500';
+                        case 'blocker': return 'bg-green-500';
+                        case 'libero': return 'bg-yellow-500';
+                        case 'universal': return 'bg-blue-500';
+                        default: return 'bg-gray-500';
+                      }
+                    };
+                    
+                    return assignedPositions.map(({ position, player, x, y }) => {
+                      const transformX = x === 'left-1/2' ? 'left-1/2 transform -translate-x-1/2' : x;
+                      return (
+                        <div 
+                          key={position}
+                          className={`absolute ${transformX} ${y} flex flex-col items-center justify-center`}
+                        >
+                          <div className="text-center">
+                            <div className={`w-12 h-12 ${getPlayerColor(player.category)} rounded-full flex items-center justify-center text-white text-xs font-bold mb-1`}>
                               {player.name.split(' ').map(n => n[0]).join('')}
                             </div>
-                            <div className="text-xs text-gray-700 font-medium">{player.name.split(' ')[0]}</div>
-                            <div className="text-xs text-gray-600">{player.category.toUpperCase()}</div>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      {/* Position 6 - Back Center */}
-                      <div className="flex flex-col items-center justify-center">
-                        {selectedPlayers.filter(p => p.category === 'libero').slice(0, 1).map(player => (
-                          <div key={player.playerId} className="text-center">
-                            <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1">
-                              {player.name.split(' ').map(n => n[0]).join('')}
+                            <div className="text-xs text-gray-700 font-medium max-w-16 truncate">
+                              {player.name.split(' ')[0]}
                             </div>
-                            <div className="text-xs text-gray-700 font-medium">{player.name.split(' ')[0]}</div>
-                            <div className="text-xs text-gray-600">{player.category.toUpperCase()}</div>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      {/* Position 1 - Back Right */}
-                      <div className="flex flex-col items-center justify-center">
-                        {selectedPlayers.filter(p => p.category === 'attacker').slice(0, 1).map(player => (
-                          <div key={player.playerId} className="text-center">
-                            <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1">
-                              {player.name.split(' ').map(n => n[0]).join('')}
+                            <div className="text-xs text-gray-600">
+                              {player.category.toUpperCase()}
                             </div>
-                            <div className="text-xs text-gray-700 font-medium">{player.name.split(' ')[0]}</div>
-                            <div className="text-xs text-gray-600">{player.category.toUpperCase()}</div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Front Row - Bottom Half */}
-                  <div className="absolute bottom-2 left-0 right-0 h-1/2">
-                    <div className="relative h-full grid grid-cols-3 gap-2 p-2">
-                      {/* Position 4 - Front Left */}
-                      <div className="flex flex-col items-center justify-center">
-                        {selectedPlayers.filter(p => p.category === 'attacker').slice(1, 2).map(player => (
-                          <div key={player.playerId} className="text-center">
-                            <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1">
-                              {player.name.split(' ').map(n => n[0]).join('')}
-                            </div>
-                            <div className="text-xs text-gray-700 font-medium">{player.name.split(' ')[0]}</div>
-                            <div className="text-xs text-gray-600">{player.category.toUpperCase()}</div>
-                          </div>
-                        )) || selectedPlayers.filter(p => p.category === 'universal').slice(1, 2).map(player => (
-                          <div key={player.playerId} className="text-center">
-                            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1">
-                              {player.name.split(' ').map(n => n[0]).join('')}
-                            </div>
-                            <div className="text-xs text-gray-700 font-medium">{player.name.split(' ')[0]}</div>
-                            <div className="text-xs text-gray-600">{player.category.toUpperCase()}</div>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      {/* Position 3 - Front Center */}
-                      <div className="flex flex-col items-center justify-center">
-                        {selectedPlayers.filter(p => p.category === 'blocker').slice(0, 1).map(player => (
-                          <div key={player.playerId} className="text-center">
-                            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1">
-                              {player.name.split(' ').map(n => n[0]).join('')}
-                            </div>
-                            <div className="text-xs text-gray-700 font-medium">{player.name.split(' ')[0]}</div>
-                            <div className="text-xs text-gray-600">{player.category.toUpperCase()}</div>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      {/* Position 2 - Front Right */}
-                      <div className="flex flex-col items-center justify-center">
-                        {selectedPlayers.filter(p => p.category === 'setter').slice(0, 1).map(player => (
-                          <div key={player.playerId} className="text-center">
-                            <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1">
-                              {player.name.split(' ').map(n => n[0]).join('')}
-                            </div>
-                            <div className="text-xs text-gray-700 font-medium">{player.name.split(' ')[0]}</div>
-                            <div className="text-xs text-gray-600">{player.category.toUpperCase()}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
                 
-                {/* Position Labels */}
-                <div className="absolute top-2 right-2 bg-white bg-opacity-80 rounded p-2">
-                  <div className="text-xs text-gray-600 font-medium mb-1">Positions:</div>
-                  <div className="text-xs space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                      <span>Setter</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                      <span>Attacker</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <span>Blocker</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                      <span>Libero</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                      <span>Universal</span>
-                    </div>
-                  </div>
-                </div>
               </div>
               
               {/* Team Stats */}
