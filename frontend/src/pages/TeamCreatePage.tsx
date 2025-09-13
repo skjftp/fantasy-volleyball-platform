@@ -2,96 +2,44 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import TeamLogo from '../components/TeamLogo';
 
-// Human male caricature avatars for home and away teams - upper body only
+// Simple human body outline avatars - upper body only
 const HomePlayerAvatar: React.FC<{ className?: string }> = ({ className = "w-12 h-12" }) => (
   <svg className={className} viewBox="0 0 100 100" fill="none">
     {/* Background circle - Home team blue */}
-    <circle cx="50" cy="50" r="48" fill="#3B82F6" stroke="#1E40AF" strokeWidth="2"/>
+    <circle cx="50" cy="50" r="48" fill="#3B82F6"/>
     
-    {/* Shoulders and upper chest */}
-    <ellipse cx="50" cy="75" rx="30" ry="12" fill="#FBBF24"/>
-    
-    {/* Chest/Upper torso */}
-    <rect x="30" y="65" width="40" height="30" rx="8" fill="#FBBF24"/>
+    {/* Human body outline above chest */}
+    {/* Head outline */}
+    <circle cx="50" cy="35" r="15" fill="none" stroke="white" strokeWidth="3"/>
     
     {/* Neck */}
-    <rect x="44" y="58" width="12" height="10" fill="#FBBF24"/>
+    <rect x="47" y="50" width="6" height="8" fill="none" stroke="white" strokeWidth="3"/>
     
-    {/* Head - realistic human proportions */}
-    <ellipse cx="50" cy="35" rx="16" ry="20" fill="#FBBF24"/>
+    {/* Shoulders */}
+    <path d="M35 65 Q42 58 47 58 Q53 58 58 58 Q65 65 65 65" fill="none" stroke="white" strokeWidth="3"/>
     
-    {/* Hair - more natural style */}
-    <path d="M34 25 Q42 18 50 20 Q58 18 66 25 Q66 30 62 35 Q58 32 50 32 Q42 32 38 35 Q34 30 34 25" fill="#6B4423"/>
-    
-    {/* Face features */}
-    {/* Eyes with more detail */}
-    <ellipse cx="43" cy="32" rx="3" ry="4" fill="white"/>
-    <ellipse cx="57" cy="32" rx="3" ry="4" fill="white"/>
-    <circle cx="43" cy="32" r="2" fill="#1F2937"/>
-    <circle cx="57" cy="32" r="2" fill="#1F2937"/>
-    <circle cx="44" cy="31" r="0.5" fill="white"/>
-    <circle cx="58" cy="31" r="0.5" fill="white"/>
-    
-    {/* Eyebrows */}
-    <path d="M38 27 Q43 25 48 27" stroke="#6B4423" strokeWidth="2" fill="none"/>
-    <path d="M52 27 Q57 25 62 27" stroke="#6B4423" strokeWidth="2" fill="none"/>
-    
-    {/* Nose with nostrils */}
-    <path d="M48 38 Q50 42 52 38" stroke="#D97706" strokeWidth="1.5" fill="none"/>
-    <ellipse cx="48.5" cy="40" rx="0.5" ry="1" fill="#D97706"/>
-    <ellipse cx="51.5" cy="40" rx="0.5" ry="1" fill="#D97706"/>
-    
-    {/* Mouth with slight smile */}
-    <path d="M45 45 Q50 48 55 45" stroke="#1F2937" strokeWidth="2" fill="none"/>
-    
-    {/* Jawline definition */}
-    <path d="M35 48 Q50 55 65 48" stroke="#D97706" strokeWidth="0.5" fill="none" opacity="0.3"/>
+    {/* Upper chest outline */}
+    <path d="M35 65 L35 80 Q35 85 40 85 L60 85 Q65 85 65 80 L65 65" fill="none" stroke="white" strokeWidth="3"/>
   </svg>
 );
 
 const AwayPlayerAvatar: React.FC<{ className?: string }> = ({ className = "w-12 h-12" }) => (
   <svg className={className} viewBox="0 0 100 100" fill="none">
     {/* Background circle - Away team red */}
-    <circle cx="50" cy="50" r="48" fill="#EF4444" stroke="#DC2626" strokeWidth="2"/>
+    <circle cx="50" cy="50" r="48" fill="#EF4444"/>
     
-    {/* Shoulders and upper chest */}
-    <ellipse cx="50" cy="75" rx="30" ry="12" fill="#D4A574"/>
-    
-    {/* Chest/Upper torso */}
-    <rect x="30" y="65" width="40" height="30" rx="8" fill="#D4A574"/>
+    {/* Human body outline above chest */}
+    {/* Head outline */}
+    <circle cx="50" cy="35" r="15" fill="none" stroke="white" strokeWidth="3"/>
     
     {/* Neck */}
-    <rect x="44" y="58" width="12" height="10" fill="#D4A574"/>
+    <rect x="47" y="50" width="6" height="8" fill="none" stroke="white" strokeWidth="3"/>
     
-    {/* Head - realistic human proportions */}
-    <ellipse cx="50" cy="35" rx="16" ry="20" fill="#D4A574"/>
+    {/* Shoulders */}
+    <path d="M35 65 Q42 58 47 58 Q53 58 58 58 Q65 65 65 65" fill="none" stroke="white" strokeWidth="3"/>
     
-    {/* Hair - more natural style */}
-    <path d="M34 25 Q42 18 50 20 Q58 18 66 25 Q66 30 62 35 Q58 32 50 32 Q42 32 38 35 Q34 30 34 25" fill="#2D1810"/>
-    
-    {/* Face features */}
-    {/* Eyes with more detail */}
-    <ellipse cx="43" cy="32" rx="3" ry="4" fill="white"/>
-    <ellipse cx="57" cy="32" rx="3" ry="4" fill="white"/>
-    <circle cx="43" cy="32" r="2" fill="#1F2937"/>
-    <circle cx="57" cy="32" r="2" fill="#1F2937"/>
-    <circle cx="44" cy="31" r="0.5" fill="white"/>
-    <circle cx="58" cy="31" r="0.5" fill="white"/>
-    
-    {/* Eyebrows */}
-    <path d="M38 27 Q43 25 48 27" stroke="#2D1810" strokeWidth="2" fill="none"/>
-    <path d="M52 27 Q57 25 62 27" stroke="#2D1810" strokeWidth="2" fill="none"/>
-    
-    {/* Nose with nostrils */}
-    <path d="M48 38 Q50 42 52 38" stroke="#B45309" strokeWidth="1.5" fill="none"/>
-    <ellipse cx="48.5" cy="40" rx="0.5" ry="1" fill="#B45309"/>
-    <ellipse cx="51.5" cy="40" rx="0.5" ry="1" fill="#B45309"/>
-    
-    {/* Mouth with slight smile */}
-    <path d="M45 45 Q50 48 55 45" stroke="#1F2937" strokeWidth="2" fill="none"/>
-    
-    {/* Jawline definition */}
-    <path d="M35 48 Q50 55 65 48" stroke="#B45309" strokeWidth="0.5" fill="none" opacity="0.3"/>
+    {/* Upper chest outline */}
+    <path d="M35 65 L35 80 Q35 85 40 85 L60 85 Q65 85 65 80 L65 65" fill="none" stroke="white" strokeWidth="3"/>
   </svg>
 );
 
