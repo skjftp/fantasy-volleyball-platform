@@ -294,29 +294,29 @@ const HomePage: React.FC = () => {
 
       {/* Bottom Navigation - Main Screen */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-        <div className="container py-2">
+        <div className="container py-1">
           <div className="flex justify-around">
-            <Link to="/" className="flex flex-col items-center space-y-1 py-2">
-              <div className="bg-red-600 rounded-full p-2">
-                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <Link to="/" className="flex flex-col items-center space-y-0.5 py-1.5">
+              <div className="bg-red-600 rounded-full p-1.5">
+                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10.707 2.293a1 1 0 00-1.414 0l-9 9a1 1 0 001.414 1.414L2 12.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-4.586l.293.293a1 1 0 001.414-1.414l-9-9z" />
                 </svg>
               </div>
               <span className="text-xs font-medium text-red-600">Home</span>
             </Link>
             
-            <Link to="/my-contests" className="flex flex-col items-center space-y-1 py-2">
-              <div className="p-2">
-                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+            <Link to="/my-contests" className="flex flex-col items-center space-y-0.5 py-1.5">
+              <div className="p-1.5">
+                <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
                 </svg>
               </div>
               <span className="text-xs text-gray-600">My Contests</span>
             </Link>
             
-            <Link to="/my-profile" className="flex flex-col items-center space-y-1 py-2">
-              <div className="p-2">
-                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+            <Link to="/my-profile" className="flex flex-col items-center space-y-0.5 py-1.5">
+              <div className="p-1.5">
+                <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
                 </svg>
               </div>
@@ -327,7 +327,7 @@ const HomePage: React.FC = () => {
       </nav>
 
       {/* Bottom padding to account for fixed nav */}
-      <div className="h-20"></div>
+      <div className="h-15"></div>
       
       {/* Point System Modal */}
       <PointSystemModal 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import pvlLogo from '../assets/pvl-logo.svg';
+import TeamLogo from '../components/TeamLogo';
 
 interface Player {
   playerId: string;
@@ -17,8 +17,8 @@ interface Player {
 
 interface Match {
   matchId: string;
-  team1: { name: string; code: string; logo: string };
-  team2: { name: string; code: string; logo: string };
+  team1: { name: string; code: string; logo: string; teamId?: string };
+  team2: { name: string; code: string; logo: string; teamId?: string };
   startTime: string;
   league: string;
 }
@@ -370,10 +370,15 @@ const TeamCreatePage: React.FC = () => {
 
     if (diff <= 0) return 'Started';
 
-    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
-    return `${hours}h ${minutes}m Left`;
+    if (days > 0) {
+      return `${days}d ${hours}h ${minutes}m Left`;
+    } else {
+      return `${hours}h ${minutes}m Left`;
+    }
   };
 
   if (loading) {
@@ -403,51 +408,58 @@ const TeamCreatePage: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-black text-white sticky top-0 z-10">
-        <div className="container py-4">
+        <div className="container py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <button 
-                onClick={() => navigate(-1)}
-                className="flex items-center text-white hover:text-gray-300 mr-4"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11a2 2 0 010-2.828L6.293 4.465a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-              <img src={pvlLogo} alt="Prime Volleyball League" className="h-12 w-auto" />
-            </div>
+            <button 
+              onClick={() => navigate(-1)}
+              className="flex items-center text-white hover:text-gray-300"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11a2 2 0 010-2.828L6.293 4.465a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
             
-            <div className="text-center flex-1 mx-4">
-              <div className="flex items-center justify-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <img src={match.team1.logo} alt={match.team1.code} className="w-8 h-8 rounded-full" />
-                  <span className="font-medium">{match.team1.code}</span>
-                  <span className="text-gray-400 text-sm">0</span>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-sm text-gray-400">Players</div>
-                  <div className="font-bold text-lg">{selectedPlayers.length}/{TEAM_SIZE}</div>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-sm text-gray-400">Credits Left</div>
-                  <div className="font-bold text-lg">{(TOTAL_CREDITS - creditsUsed).toFixed(1)}</div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <span className="text-gray-400 text-sm">0</span>
-                  <span className="font-medium">{match.team2.code}</span>
-                  <img src={match.team2.logo} alt={match.team2.code} className="w-8 h-8 rounded-full" />
-                </div>
+            <div className="flex items-center justify-center space-x-6 flex-1">
+              <div className="flex items-center space-x-2">
+                <TeamLogo
+                  teamId={match.team1.teamId}
+                  teamCode={match.team1.code}
+                  logoPath={match.team1.logo}
+                  alt={match.team1.code}
+                  className="w-8 h-8 rounded-full bg-gray-100"
+                />
+                <span className="font-medium text-sm">{match.team1.code}</span>
               </div>
               
-              <div className="text-xs text-orange-400 font-medium mt-1">
-                {formatTimeLeft(match.startTime)}
+              <div className="text-center">
+                <div className="text-xs text-gray-400">Players</div>
+                <div className="font-bold text-sm">{selectedPlayers.length}/{TEAM_SIZE}</div>
+              </div>
+              
+              <div className="text-center">
+                <div className="text-xs text-gray-400">Credits Left</div>
+                <div className="font-bold text-sm">{(TOTAL_CREDITS - creditsUsed).toFixed(1)}</div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <span className="font-medium text-sm">{match.team2.code}</span>
+                <TeamLogo
+                  teamId={match.team2.teamId}
+                  teamCode={match.team2.code}
+                  logoPath={match.team2.logo}
+                  alt={match.team2.code}
+                  className="w-8 h-8 rounded-full bg-gray-100"
+                />
               </div>
             </div>
 
             <div className="w-6"></div>
+          </div>
+          
+          <div className="text-center">
+            <div className="text-xs text-orange-400 font-medium">
+              {formatTimeLeft(match.startTime)}
+            </div>
           </div>
           
           {/* Team Progress Indicators */}
