@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import PointSystemModal from '../components/PointSystemModal';
 import pvlLogo from '../assets/pvl-logo.svg';
-import { getTeamLogoSrc } from '../utils/teamLogos';
+import { getTeamLogoSrc, getTeamLogoByCodes } from '../utils/teamLogos';
 
 interface Match {
   matchId: string;
@@ -234,7 +234,7 @@ const HomePage: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3 flex-1">
                         <img
-                          src={getTeamLogoSrc(match.team1.logo)}
+                          src={getTeamLogoSrc(match.team1.logo) || getTeamLogoByCodes(match.team1.code)}
                           alt={match.team1.name}
                           className="w-10 h-10 rounded-full bg-gray-100"
                         />
@@ -252,7 +252,7 @@ const HomePage: React.FC = () => {
 
                       <div className="flex items-center space-x-3 flex-1 flex-row-reverse">
                         <img
-                          src={getTeamLogoSrc(match.team2.logo)}
+                          src={getTeamLogoSrc(match.team2.logo) || getTeamLogoByCodes(match.team2.code)}
                           alt={match.team2.name}
                           className="w-10 h-10 rounded-full bg-gray-100"
                         />
