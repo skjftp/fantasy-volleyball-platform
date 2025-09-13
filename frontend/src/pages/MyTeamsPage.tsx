@@ -2,6 +2,37 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+// Simple human body outline avatars - upper body only
+const HomePlayerAvatar: React.FC<{ className?: string }> = ({ className = "w-8 h-8" }) => (
+  <svg className={className} viewBox="0 0 100 100" fill="none">
+    <circle cx="50" cy="50" r="48" fill="#3B82F6"/>
+    <circle cx="50" cy="35" r="15" fill="none" stroke="white" strokeWidth="3"/>
+    <rect x="47" y="50" width="6" height="8" fill="none" stroke="white" strokeWidth="3"/>
+    <path d="M35 65 Q42 58 47 58 Q53 58 58 58 Q65 65 65 65" fill="none" stroke="white" strokeWidth="3"/>
+    <path d="M35 65 L35 80 Q35 85 40 85 L60 85 Q65 85 65 80 L65 65" fill="none" stroke="white" strokeWidth="3"/>
+  </svg>
+);
+
+const AwayPlayerAvatar: React.FC<{ className?: string }> = ({ className = "w-8 h-8" }) => (
+  <svg className={className} viewBox="0 0 100 100" fill="none">
+    <circle cx="50" cy="50" r="48" fill="#EF4444"/>
+    <circle cx="50" cy="35" r="15" fill="none" stroke="white" strokeWidth="3"/>
+    <rect x="47" y="50" width="6" height="8" fill="none" stroke="white" strokeWidth="3"/>
+    <path d="M35 65 Q42 58 47 58 Q53 58 58 58 Q65 65 65 65" fill="none" stroke="white" strokeWidth="3"/>
+    <path d="M35 65 L35 80 Q35 85 40 85 L60 85 Q65 85 65 80 L65 65" fill="none" stroke="white" strokeWidth="3"/>
+  </svg>
+);
+
+// Helper function to get appropriate avatar based on team
+const getPlayerAvatar = (teamCode: string, match: Match | null, className?: string) => {
+  if (!match) return <HomePlayerAvatar className={className} />;
+  
+  const isHomeTeam = teamCode === match.team1.code;
+  return isHomeTeam ? 
+    <HomePlayerAvatar className={className} /> : 
+    <AwayPlayerAvatar className={className} />;
+};
+
 interface UserTeam {
   teamId: string;
   teamName: string;
@@ -297,15 +328,7 @@ const MyTeamsPage: React.FC = () => {
                       <div className="flex items-center space-x-4">
                         {captain && (
                           <div className="flex items-center space-x-2 flex-1">
-                            <img 
-                              src={captain.imageUrl || 'https://randomuser.me/api/portraits/men/1.jpg'} 
-                              alt={captain.name}
-                              className="w-8 h-8 rounded-full object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = 'https://randomuser.me/api/portraits/men/1.jpg';
-                              }}
-                            />
+                            {getPlayerAvatar(captain.team, match, "w-8 h-8 rounded-full")}
                             <div className="flex-1 min-w-0">
                               <div className="text-xs font-medium text-gray-900 truncate">{captain.name}</div>
                               <div className="flex items-center space-x-1">
@@ -318,15 +341,7 @@ const MyTeamsPage: React.FC = () => {
                         
                         {viceCaptain && (
                           <div className="flex items-center space-x-2 flex-1">
-                            <img 
-                              src={viceCaptain.imageUrl || 'https://randomuser.me/api/portraits/men/2.jpg'} 
-                              alt={viceCaptain.name}
-                              className="w-8 h-8 rounded-full object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = 'https://randomuser.me/api/portraits/men/2.jpg';
-                              }}
-                            />
+                            {getPlayerAvatar(viceCaptain.team, match, "w-8 h-8 rounded-full")}
                             <div className="flex-1 min-w-0">
                               <div className="text-xs font-medium text-gray-900 truncate">{viceCaptain.name}</div>
                               <div className="flex items-center space-x-1">
@@ -349,7 +364,14 @@ const MyTeamsPage: React.FC = () => {
                   {/* Team Stats */}
                   <div className="flex items-center justify-between text-sm">
                     <div className="text-gray-600">
-                      {team.players?.length || 6} Players • C & VC Selected
+                      {(() => {
+                        if (!team.players || !match) return '0:0';
+                        
+                        const team1Count = team.players.filter(p => p.team === match.team1.code).length;
+                        const team2Count = team.players.filter(p => p.team === match.team2.code).length;
+                        
+                        return `${match.team1.code} ${team1Count}:${team2Count} ${match.team2.code}`;
+                      })()}
                     </div>
                     <div className="flex items-center space-x-2">
                       {team.rank > 0 ? (

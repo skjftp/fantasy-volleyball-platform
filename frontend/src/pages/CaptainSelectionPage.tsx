@@ -58,7 +58,7 @@ const CaptainSelectionPage: React.FC = () => {
       return;
     }
 
-    // Fetch existing teams count to determine team name
+    // Fetch existing teams count for this match to determine team name
     let teamCount = 1;
     try {
       const token = localStorage.getItem('auth_token');
@@ -70,7 +70,9 @@ const CaptainSelectionPage: React.FC = () => {
         
         if (teamsResponse.ok) {
           const existingTeams = await teamsResponse.json();
-          teamCount = (existingTeams?.length || 0) + 1;
+          // Count teams for this specific match only
+          const matchTeams = existingTeams.filter((team: any) => team.matchId === matchId);
+          teamCount = (matchTeams?.length || 0) + 1;
         }
       }
     } catch (error) {
@@ -86,7 +88,7 @@ const CaptainSelectionPage: React.FC = () => {
       captainId,
       viceCaptainId,
       totalCredits: creditsUsed,
-      suggestedTeamName: `Team ${teamCount}`
+      suggestedTeamName: `T${teamCount}`
     };
 
     try {
@@ -124,8 +126,8 @@ const CaptainSelectionPage: React.FC = () => {
             state: { teamCreated: true, teamId: result.teamId, contestId }
           });
         } else {
-          // Otherwise go to My Teams
-          navigate('/my-teams');
+          // Otherwise go to match-specific My Teams page
+          navigate(`/match/${matchId}/my-teams`);
         }
       } else {
         const errorText = await response.text();
