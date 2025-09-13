@@ -23,7 +23,7 @@ interface League {
 interface Player {
   playerId: string;
   name: string;
-  category: 'setter' | 'attacker' | 'blocker' | 'universal';
+  category: 'libero' | 'setter' | 'attacker' | 'blocker' | 'universal';
   credits: number;
   imageUrl: string;
   teamId: string;
@@ -48,7 +48,7 @@ const SquadManagement: React.FC<SquadManagementProps> = ({ teams, leagues, getAu
     const newPlayer: Player = {
       playerId: `player_${Date.now()}_${players.length}`,
       name: '',
-      category: 'setter',
+      category: 'libero',
       credits: 8.0,
       imageUrl: '',
       teamId: selectedTeamId,
@@ -318,6 +318,7 @@ const SquadManagement: React.FC<SquadManagementProps> = ({ teams, leagues, getAu
                         onChange={(e) => updatePlayer(index, 'category', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                       >
+                        <option value="libero">Libero</option>
                         <option value="setter">Setter</option>
                         <option value="attacker">Attacker</option>
                         <option value="blocker">Blocker</option>

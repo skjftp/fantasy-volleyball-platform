@@ -652,23 +652,54 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Team Logo</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                          setNewTeam({...newTeam, logo: event.target?.result as string});
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                  />
+                {/* Logo Upload Section */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Team Logo URL</label>
+                    <input
+                      type="url"
+                      value={newTeam.logo}
+                      onChange={(e) => setNewTeam({...newTeam, logo: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      placeholder="https://example.com/logo.png or data:image/webp;base64,..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Upload Team Logo</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            setNewTeam({...newTeam, logo: event.target?.result as string});
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Upload an image file or paste a URL above. Uploaded images will be converted to base64.
+                    </p>
+                  </div>
+                  {/* Logo Preview */}
+                  {newTeam.logo && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Logo Preview</label>
+                      <img 
+                        src={newTeam.logo} 
+                        alt="Team Logo Preview" 
+                        className="w-16 h-16 object-contain border rounded"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -746,6 +777,58 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ admin, onLogout }) => {
                             ))}
                           </select>
                         </div>
+                        
+                        {/* Logo Upload Section */}
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Team Logo URL</label>
+                            <input
+                              type="url"
+                              value={editTeam?.logo || ''}
+                              onChange={(e) => setEditTeam(editTeam ? {...editTeam, logo: e.target.value} : null)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                              placeholder="https://example.com/logo.png or data:image/webp;base64,..."
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Upload Team Logo</label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (event) => {
+                                    const base64 = event.target?.result as string;
+                                    setEditTeam(editTeam ? {...editTeam, logo: base64} : null);
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Upload an image file or paste a URL above. Uploaded images will be converted to base64.
+                            </p>
+                          </div>
+                          {/* Logo Preview */}
+                          {editTeam?.logo && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Logo Preview</label>
+                              <img 
+                                src={editTeam.logo} 
+                                alt="Team Logo Preview" 
+                                className="w-16 h-16 object-contain border rounded"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                        
                         <div className="flex space-x-2">
                           <button
                             type="submit"

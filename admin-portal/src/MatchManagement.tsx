@@ -39,7 +39,7 @@ interface MatchPlayer {
   playerName: string;
   playerImageUrl: string;
   teamCode: string;
-  category: 'setter' | 'attacker' | 'blocker' | 'universal';
+  category: 'libero' | 'setter' | 'attacker' | 'blocker' | 'universal';
   credits: number;
   isStarting6: boolean;
   jerseyNumber?: number;
@@ -60,7 +60,7 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatchId, setSelectedMatchId] = useState('');
   const [matchPlayers, setMatchPlayers] = useState<MatchPlayer[]>([]);
-  const [activeCategory, setActiveCategory] = useState<'setter' | 'attacker' | 'blocker' | 'universal'>('setter');
+  const [activeCategory, setActiveCategory] = useState<'libero' | 'setter' | 'attacker' | 'blocker' | 'universal'>('libero');
 
   // Match creation form
   const [newMatch, setNewMatch] = useState({
@@ -317,10 +317,11 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
 
   const selectedMatch = matches.find(m => m.matchId === selectedMatchId);
   const categories = [
-    { key: 'setter' as const, label: 'Setters', color: 'bg-blue-100 text-blue-800' },
-    { key: 'attacker' as const, label: 'Attackers', color: 'bg-red-100 text-red-800' },
-    { key: 'blocker' as const, label: 'Blockers', color: 'bg-green-100 text-green-800' },
-    { key: 'universal' as const, label: 'Universal', color: 'bg-purple-100 text-purple-800' }
+    { key: 'libero' as const, label: 'Libero (1)', color: 'bg-yellow-100 text-yellow-800' },
+    { key: 'setter' as const, label: 'Setters (4)', color: 'bg-blue-100 text-blue-800' },
+    { key: 'attacker' as const, label: 'Attackers (10)', color: 'bg-red-100 text-red-800' },
+    { key: 'blocker' as const, label: 'Blockers (6)', color: 'bg-green-100 text-green-800' },
+    { key: 'universal' as const, label: 'Universal (4)', color: 'bg-purple-100 text-purple-800' }
   ];
 
   return (
@@ -551,6 +552,7 @@ const MatchManagement: React.FC<MatchManagementProps> = ({ teams, leagues, getAu
                           onChange={(e) => updatePlayerField(player.playerId, 'category', e.target.value)}
                           className="px-3 py-2 border border-gray-300 rounded-md text-sm"
                         >
+                          <option value="libero">Libero</option>
                           <option value="setter">Setter</option>
                           <option value="attacker">Attacker</option>
                           <option value="blocker">Blocker</option>

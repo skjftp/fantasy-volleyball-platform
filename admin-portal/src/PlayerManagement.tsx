@@ -4,7 +4,7 @@ interface Player {
   playerId: string;
   name: string;
   imageUrl: string;
-  defaultCategory: 'setter' | 'attacker' | 'blocker' | 'universal';
+  defaultCategory: 'libero' | 'setter' | 'attacker' | 'blocker' | 'universal';
   defaultCredits: number;
   dateOfBirth: string;
   nationality: string;
@@ -50,7 +50,7 @@ const PlayerManagement: React.FC<PlayerManagementProps> = ({ getAuthHeaders, loa
       playerId: `player_${Date.now()}_${players.length}`,
       name: '',
       imageUrl: '',
-      defaultCategory: 'setter',
+      defaultCategory: 'libero',
       defaultCredits: 8.0,
       dateOfBirth: '',
       nationality: 'India',
@@ -273,6 +273,7 @@ const PlayerManagement: React.FC<PlayerManagementProps> = ({ getAuthHeaders, loa
                       onChange={(e) => updatePlayer(index, 'defaultCategory', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                     >
+                      <option value="libero">Libero</option>
                       <option value="setter">Setter</option>
                       <option value="attacker">Attacker</option>
                       <option value="blocker">Blocker</option>
