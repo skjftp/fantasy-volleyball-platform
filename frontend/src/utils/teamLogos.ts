@@ -3,6 +3,13 @@ import { getTeamLogo, getTeamLogoByCode } from '../assets/team-logos';
 
 // Convert database logo path to imported asset
 export const getTeamLogoSrc = (logoPath: string | undefined, teamId?: string): string => {
+  // Handle new team-logo:CODE format
+  if (logoPath?.startsWith('team-logo:')) {
+    const teamCode = logoPath.replace('team-logo:', '');
+    const localLogo = getTeamLogoByCode(teamCode);
+    if (localLogo) return localLogo;
+  }
+  
   // First, try to get by team ID using imported assets
   if (teamId) {
     const localLogo = getTeamLogo(teamId);
