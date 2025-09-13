@@ -225,20 +225,20 @@ const HomePage: React.FC = () => {
 
                     {/* Teams with Date/Time in center */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3 flex-1">
-                        <TeamLogo
-                          teamId={match.team1.teamId}
-                          teamCode={match.team1.code}
-                          logoPath={match.team1.logo}
-                          alt={match.team1.name}
-                          className="w-10 h-10 rounded-full bg-gray-100"
-                        />
-                        <div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-1">
+                          <TeamLogo
+                            teamId={match.team1.teamId}
+                            teamCode={match.team1.code}
+                            logoPath={match.team1.logo}
+                            alt={match.team1.name}
+                            className="w-10 h-10 rounded-full bg-gray-100"
+                          />
                           <p className="font-medium text-gray-800">{match.team1.code}</p>
-                          <p className="text-xs text-gray-600 truncate max-w-20">
-                            {match.team1.name}
-                          </p>
                         </div>
+                        <p className="text-xs text-gray-600 truncate">
+                          {match.team1.name}
+                        </p>
                       </div>
 
                       {/* Center section with date/time and VS */}
@@ -256,20 +256,20 @@ const HomePage: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-3 flex-1 flex-row-reverse">
-                        <TeamLogo
-                          teamId={match.team2.teamId}
-                          teamCode={match.team2.code}
-                          logoPath={match.team2.logo}
-                          alt={match.team2.name}
-                          className="w-10 h-10 rounded-full bg-gray-100"
-                        />
-                        <div className="text-right">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-1 flex-row-reverse">
+                          <TeamLogo
+                            teamId={match.team2.teamId}
+                            teamCode={match.team2.code}
+                            logoPath={match.team2.logo}
+                            alt={match.team2.name}
+                            className="w-10 h-10 rounded-full bg-gray-100"
+                          />
                           <p className="font-medium text-gray-800">{match.team2.code}</p>
-                          <p className="text-xs text-gray-600 truncate max-w-20">
-                            {match.team2.name}
-                          </p>
                         </div>
+                        <p className="text-xs text-gray-600 truncate text-right">
+                          {match.team2.name}
+                        </p>
                       </div>
                     </div>
 
