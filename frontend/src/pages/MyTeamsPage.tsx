@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import pvlLogo from '../assets/pvl-logo.svg';
 
 interface UserTeam {
   teamId: string;
