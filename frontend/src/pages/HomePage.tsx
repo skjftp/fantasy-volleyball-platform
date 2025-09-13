@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import PointSystemModal from '../components/PointSystemModal';
+import TeamLogo from '../components/TeamLogo';
 import pvlLogo from '../assets/pvl-logo.svg';
 
 interface Match {
@@ -10,11 +11,13 @@ interface Match {
     name: string;
     code: string;
     logo: string;
+    teamId?: string;
   };
   team2: {
     name: string;
     code: string;
     logo: string;
+    teamId?: string;
   };
   startTime: string;
   status: string;
@@ -232,8 +235,10 @@ const HomePage: React.FC = () => {
                     {/* Teams */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3 flex-1">
-                        <img
-                          src={match.team1.logo}
+                        <TeamLogo
+                          teamId={match.team1.teamId}
+                          teamCode={match.team1.code}
+                          logoPath={match.team1.logo}
                           alt={match.team1.name}
                           className="w-10 h-10 rounded-full bg-gray-100"
                         />
@@ -250,8 +255,10 @@ const HomePage: React.FC = () => {
                       </div>
 
                       <div className="flex items-center space-x-3 flex-1 flex-row-reverse">
-                        <img
-                          src={match.team2.logo}
+                        <TeamLogo
+                          teamId={match.team2.teamId}
+                          teamCode={match.team2.code}
+                          logoPath={match.team2.logo}
                           alt={match.team2.name}
                           className="w-10 h-10 rounded-full bg-gray-100"
                         />
