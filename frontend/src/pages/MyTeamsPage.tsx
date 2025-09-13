@@ -39,121 +39,130 @@ const MyTeamsPage: React.FC = () => {
   const { matchId } = useParams<{ matchId: string }>();
   const navigate = useNavigate();
   const [teams, setTeams] = useState<UserTeam[]>([]);
-  const [matches, setMatches] = useState<{ [key: string]: Match }>({});
+  const [match, setMatch] = useState<Match | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchUserTeams();
-  }, []);
+    if (matchId) {
+      fetchMatchAndTeams();
+    } else {
+      navigate('/');
+    }
+  }, [matchId]);
 
-  const fetchUserTeams = async () => {
+  const fetchMatchAndTeams = async () => {
     try {
-      if (!user?.uid) {
-        console.log('No user UID found');
+      if (!user?.uid || !matchId) {
+        console.log('No user UID or match ID found');
         return;
       }
 
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
-      console.log('Fetching teams for user:', user.uid);
-      console.log('API URL:', `${apiUrl}/users/${user.uid}/teams`);
-      
-      // Get auth token from localStorage
       const token = localStorage.getItem('auth_token');
       if (!token) {
         console.error('No auth token found');
         throw new Error('Authentication required');
       }
-      
-      const response = await fetch(`${apiUrl}/users/${user.uid}/teams`, {
+
+      // Fetch match details first
+      const matchResponse = await fetch(`${apiUrl}/matches`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      console.log('Teams API Response status:', response.status);
-      console.log('Teams API Response headers:', response.headers);
       
-      if (!response.ok) {
-        const errorText = await response.text();
+      if (matchResponse.ok) {
+        const matchesData = await matchResponse.json();
+        const currentMatch = matchesData.find((m: any) => m.matchId === matchId);
+        
+        if (currentMatch) {
+          setMatch({
+            ...currentMatch,
+            startTime: currentMatch.startTime?.seconds ? 
+              new Date(currentMatch.startTime.seconds * 1000).toISOString() : 
+              currentMatch.startTime,
+            league: currentMatch.leagueId === 'pvl_2025_season1' ? 'Prime Volleyball League' :
+                   currentMatch.leagueId === 'league_1757427809972' ? 'Pro Volleyball League' : 
+                   currentMatch.leagueId === 'league_test' ? 'Test League' : 
+                   'Volleyball League'
+          });
+        }
+      }
+
+      // Fetch user teams and filter by matchId
+      const teamsResponse = await fetch(`${apiUrl}/users/${user.uid}/teams`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!teamsResponse.ok) {
+        const errorText = await teamsResponse.text();
         console.error('Teams API Error Response:', errorText);
-        throw new Error(`Failed to fetch teams: ${response.status} - ${errorText}`);
+        throw new Error(`Failed to fetch teams: ${teamsResponse.status} - ${errorText}`);
       }
       
-      const teamsData = await response.json();
-      console.log('Teams data received:', teamsData);
+      const allTeamsData = await teamsResponse.json();
+      console.log('All teams data received:', allTeamsData);
       
-      // Process teams data to get complete player information using match-squads endpoint
+      // Filter teams for this specific match
+      const matchTeams = (allTeamsData || []).filter((team: UserTeam) => team.matchId === matchId);
+      console.log('Filtered teams for match:', matchTeams);
+
+      // Process teams data to get complete player information
       const processedTeams = [];
-      const matchPlayersCache: { [matchId: string]: Player[] } = {};
-      
-      for (const team of teamsData || []) {
-        console.log('Processing team:', team);
-        
-        // If players are just IDs, get player details from match-squads
-        if (team.players && team.players.length > 0 && team.matchId) {
-          let matchPlayers: Player[] = [];
+      let matchPlayers: Player[] = [];
+
+      if (matchTeams.length > 0) {
+        // Fetch match squad data for player details
+        try {
+          const squadResponse = await fetch(`${apiUrl}/match-squads/match/${matchId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
           
-          // Check cache first
-          if (matchPlayersCache[team.matchId]) {
-            matchPlayers = matchPlayersCache[team.matchId];
-          } else {
-            try {
-              // Fetch all players for this match using match-squads endpoint
-              const squadResponse = await fetch(`${apiUrl}/match-squads/match/${team.matchId}`, {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json'
-                }
-              });
+          if (squadResponse.ok) {
+            const squadData = await squadResponse.json();
+            console.log('Squad data for match:', squadData);
+            
+            if (squadData.team1Players && squadData.team2Players) {
+              const allSquadPlayers = [
+                ...squadData.team1Players.map((p: any) => ({ ...p, teamCode: squadData.team1?.code || 'T1' })),
+                ...squadData.team2Players.map((p: any) => ({ ...p, teamCode: squadData.team2?.code || 'T2' }))
+              ];
               
-              if (squadResponse.ok) {
-                const squadData = await squadResponse.json();
-                console.log('Squad data for match', team.matchId, ':', squadData);
-                
-                if (squadData.team1Players && squadData.team2Players) {
-                  const allSquadPlayers = [
-                    ...squadData.team1Players.map((p: any) => ({ ...p, teamCode: squadData.team1?.code || 'T1' })),
-                    ...squadData.team2Players.map((p: any) => ({ ...p, teamCode: squadData.team2?.code || 'T2' }))
-                  ];
-                  
-                  // Convert squad players to Player interface
-                  matchPlayers = allSquadPlayers.map((squadPlayer: any) => ({
-                    playerId: squadPlayer.playerId,
-                    name: squadPlayer.playerName || 'Unknown Player',
-                    team: squadPlayer.teamCode,
-                    category: squadPlayer.category as 'setter' | 'attacker' | 'blocker' | 'universal',
-                    credits: squadPlayer.credits || 0,
-                    imageUrl: squadPlayer.playerImageUrl || 'https://randomuser.me/api/portraits/men/1.jpg',
-                    lastMatchPoints: squadPlayer.lastMatchPoints || 0,
-                    selectionPercentage: squadPlayer.selectionPercentage || 0
-                  }));
-                  
-                  // Cache the players for this match
-                  matchPlayersCache[team.matchId] = matchPlayers;
-                }
-              } else {
-                console.warn('Failed to fetch squad data for match:', team.matchId);
-              }
-            } catch (error) {
-              console.error('Error fetching squad data:', error);
+              matchPlayers = allSquadPlayers.map((squadPlayer: any) => ({
+                playerId: squadPlayer.playerId,
+                name: squadPlayer.playerName || 'Unknown Player',
+                team: squadPlayer.teamCode,
+                category: squadPlayer.category as 'libero' | 'setter' | 'attacker' | 'blocker' | 'universal',
+                credits: squadPlayer.credits || 0,
+                imageUrl: squadPlayer.playerImageUrl || 'https://randomuser.me/api/portraits/men/1.jpg',
+                lastMatchPoints: squadPlayer.lastMatchPoints || 0,
+                selectionPercentage: squadPlayer.selectionPercentage || 0
+              }));
             }
           }
-          
-          // Map team player IDs to full player objects
+        } catch (error) {
+          console.error('Error fetching squad data:', error);
+        }
+
+        // Process each team
+        for (const team of matchTeams) {
           const teamPlayersWithDetails = [];
           
-          for (const playerId of team.players) {
+          for (const playerId of team.players || []) {
             if (typeof playerId === 'object' && playerId.playerId) {
-              // Already a full player object
               teamPlayersWithDetails.push(playerId);
             } else if (typeof playerId === 'string') {
-              // Find the player in the match players
               const fullPlayer = matchPlayers.find(p => p.playerId === playerId);
               if (fullPlayer) {
                 teamPlayersWithDetails.push(fullPlayer);
               } else {
-                // Fallback player object
-                console.warn('Player not found in squad data:', playerId);
                 teamPlayersWithDetails.push({
                   playerId,
                   name: 'Unknown Player',
@@ -169,39 +178,12 @@ const MyTeamsPage: React.FC = () => {
           }
           
           processedTeams.push({ ...team, players: teamPlayersWithDetails });
-        } else {
-          processedTeams.push(team);
         }
       }
       
-      console.log('Processed teams with player details:', processedTeams);
       setTeams(processedTeams);
-      
-      // Fetch match details for teams
-      if (teamsData && teamsData.length > 0) {
-        console.log('Fetching match details for teams');
-        const matchesResponse = await fetch(`${apiUrl}/matches`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (matchesResponse.ok) {
-          const matchesData = await matchesResponse.json();
-          console.log('Matches data received:', matchesData);
-          
-          const matchesMap: { [key: string]: Match } = {};
-          matchesData.forEach((match: Match) => {
-            matchesMap[match.matchId] = match;
-          });
-          setMatches(matchesMap);
-        } else {
-          console.error('Failed to fetch matches:', matchesResponse.status);
-        }
-      }
     } catch (error) {
-      console.error('Error fetching teams:', error);
+      console.error('Error fetching match and teams:', error);
       setTeams([]);
     } finally {
       setLoading(false);
@@ -229,14 +211,29 @@ const MyTeamsPage: React.FC = () => {
         <div className="container py-4">
           <div className="flex items-center justify-between">
             <button 
-              onClick={() => navigate('/')}
+              onClick={() => navigate(`/match/${matchId}/contests`)}
               className="flex items-center text-white hover:text-gray-300 mr-4"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11a2 2 0 010-2.828L6.293 4.465a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z" clipRule="evenodd" />
               </svg>
             </button>
-            <img src={pvlLogo} alt="Prime Volleyball League" className="h-10 w-auto" />
+            
+            <div className="text-center flex-1">
+              {match ? (
+                <>
+                  <div className="flex items-center justify-center space-x-2 text-sm">
+                    <span className="font-medium">{match.team1.code}</span>
+                    <span className="text-gray-300">vs</span>
+                    <span className="font-medium">{match.team2.code}</span>
+                  </div>
+                  <div className="text-xs text-gray-300">My Teams</div>
+                </>
+              ) : (
+                <div className="text-sm font-medium">My Teams</div>
+              )}
+            </div>
+            
             <div className="w-16"></div>
           </div>
         </div>
@@ -253,63 +250,44 @@ const MyTeamsPage: React.FC = () => {
             </div>
             <h3 className="text-lg font-medium text-gray-800 mb-2">No teams created yet</h3>
             <p className="text-gray-600 mb-6">
-              Create your first volleyball team to get started!
+              Create your first team for this match to get started!
             </p>
             
-            {process.env.NODE_ENV === 'development' && (
-              <div className="bg-gray-100 p-4 rounded-lg mb-6 text-left max-w-md mx-auto">
-                <p className="text-xs text-gray-600 mb-2"><strong>Debug Info:</strong></p>
-                <p className="text-xs text-gray-600">User ID: {user?.uid}</p>
-                <p className="text-xs text-gray-600">Match ID: {matchId || 'None'}</p>
-                <p className="text-xs text-gray-600">Teams Count: {teams.length}</p>
-              </div>
-            )}
-            
-            <Link 
-              to={matchId ? `/match/${matchId}/create-team` : "/"}
+            <button 
+              onClick={() => navigate(`/match/${matchId}/create-team`)}
               className="inline-flex items-center bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors"
             >
               <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
               </svg>
               Create Team
-            </Link>
+            </button>
           </div>
         ) : (
           <div className="space-y-4">
             {teams.map((team) => {
-              const match = matches[team.matchId];
               const captain = team.players?.find(p => p.playerId === team.captainId);
               const viceCaptain = team.players?.find(p => p.playerId === team.viceCaptainId);
-              
-              // Debug logging
-              console.log('Team:', team.teamName, {
-                captainId: team.captainId,
-                viceCaptainId: team.viceCaptainId,
-                playersCount: team.players?.length,
-                captain: captain ? captain.name : 'Not found',
-                viceCaptain: viceCaptain ? viceCaptain.name : 'Not found'
-              });
               
               return (
                 <div key={team.teamId} className="bg-white rounded-lg p-4 border shadow-sm">
                   {/* Team Header */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className="bg-black text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold">
-                        {team.teamName}
+                      <div className="bg-black text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs">
+                        {team.teamName.charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <div className="font-medium text-gray-800">
-                          {match ? `${match.team1.code} vs ${match.team2.code}` : 'Match Info'}
+                          {team.teamName}
                         </div>
                         <div className="text-xs text-gray-600">
-                          {match?.league}
+                          {match ? `${match.team1.code} vs ${match.team2.code}` : 'Loading match...'}
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-bold text-gray-800">{team.totalPoints}</div>
+                      <div className="text-lg font-bold text-gray-800">{team.totalPoints || 0}</div>
                       <div className="text-xs text-gray-600">Points</div>
                     </div>
                   </div>
@@ -364,14 +342,6 @@ const MyTeamsPage: React.FC = () => {
                   ) : (
                     <div className="bg-gray-50 rounded-lg p-3 mb-3">
                       <div className="text-center text-sm text-gray-600">
-                        {process.env.NODE_ENV === 'development' && (
-                          <div className="text-xs">
-                            <p>Debug: No captain/VC data found</p>
-                            <p>Captain: {team.players?.find(p => p.playerId === team.captainId)?.name || 'Not found'}</p>
-                            <p>Vice-Captain: {team.players?.find(p => p.playerId === team.viceCaptainId)?.name || 'Not found'}</p>
-                            <p>Players: {team.players?.length || 0}</p>
-                          </div>
-                        )}
                         Captain & Vice-Captain information loading...
                       </div>
                     </div>
@@ -398,6 +368,19 @@ const MyTeamsPage: React.FC = () => {
               );
             })}
           </div>
+        )}
+
+        {/* Floating Create Team Button - Only show when teams exist */}
+        {teams.length > 0 && (
+          <button
+            onClick={() => navigate(`/match/${matchId}/create-team`)}
+            className="fixed bottom-24 right-4 bg-black text-white w-14 h-14 rounded-full shadow-lg hover:bg-gray-800 transition-colors flex items-center justify-center z-10"
+            title="Create New Team"
+          >
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+          </button>
         )}
       </main>
 
