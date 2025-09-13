@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import pvlLogo from '../assets/pvl-logo.svg';
 
 interface Contest {
   contestId: string;
@@ -295,7 +296,7 @@ const ContestsPage: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">Match not found</p>
-          <Link to="/" className="text-red-600 hover:underline mt-2 block">
+          <Link to="/" className="text-black hover:underline mt-2 block">
             Back to Home
           </Link>
         </div>
@@ -306,31 +307,32 @@ const ContestsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-red-600 text-white shadow-sm border-b sticky top-0 z-10">
-        <div className="container py-3">
+      <header className="bg-black text-white shadow-sm border-b sticky top-0 z-10">
+        <div className="container py-4">
           <div className="flex items-center justify-between">
             <button 
               onClick={() => navigate('/')}
-              className="flex items-center text-white hover:text-gray-200"
+              className="flex items-center text-white hover:text-gray-300 mr-4"
             >
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11a2 2 0 010-2.828L6.293 4.465a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z" clipRule="evenodd" />
               </svg>
-              Back
             </button>
+            
+            <img src={pvlLogo} alt="Prime Volleyball League" className="h-10 w-auto" />
             
             <div className="text-center flex-1 mx-4">
               <div className="flex items-center justify-center space-x-2 text-sm">
                 <span className="font-medium">{match.team1.code}</span>
-                <span className="text-red-200">vs</span>
+                <span className="text-gray-300">vs</span>
                 <span className="font-medium">{match.team2.code}</span>
               </div>
-              <div className="text-xs text-red-100 font-medium">
+              <div className="text-xs text-gray-300 font-medium">
                 {formatTimeLeft(match.startTime)}
               </div>
             </div>
 
-            <div className="bg-red-700 px-3 py-1 rounded-full flex items-center space-x-1">
+            <div className="bg-gray-800 px-3 py-1 rounded-full flex items-center space-x-1">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" />
               </svg>
@@ -382,7 +384,7 @@ const ContestsPage: React.FC = () => {
             <p className="text-gray-600">Contests for this match haven't been created yet.</p>
             <Link 
               to="/"
-              className="inline-block mt-4 text-red-600 hover:underline"
+              className="inline-block mt-4 text-black hover:underline"
             >
               Back to Home
             </Link>
@@ -402,7 +404,7 @@ const ContestsPage: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <button className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors">
+                    <button className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors">
                       ₹{contest.entryFee}
                     </button>
                   </div>
@@ -425,7 +427,7 @@ const ContestsPage: React.FC = () => {
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
-                        className="bg-red-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-black h-2 rounded-full transition-all duration-300"
                         style={{ 
                           width: `${contest.maxSpots ? ((contest.maxSpots - (contest.spotsLeft || 0)) / contest.maxSpots) * 100 : 0}%` 
                         }}
@@ -486,12 +488,12 @@ const ContestsPage: React.FC = () => {
           <div className="flex justify-around">
             {/* Contests (active) */}
             <div className="flex flex-col items-center space-y-1 py-2">
-              <div className="bg-red-600 rounded-full p-2">
+              <div className="bg-black rounded-full p-2">
                 <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
                 </svg>
               </div>
-              <span className="text-xs font-medium text-red-600">Contests</span>
+              <span className="text-xs font-medium text-black">Contests</span>
             </div>
             
             <Link to={`/match/${matchId}/my-contests`} className="flex flex-col items-center space-y-1 py-2">
@@ -550,7 +552,7 @@ const ContestsPage: React.FC = () => {
                       setShowTeamModal(false);
                       navigate(`/match/${matchId}/create-team?contestId=${selectedContest.contestId}`);
                     }}
-                    className="mt-3 text-red-600 hover:underline"
+                    className="mt-3 text-black hover:underline"
                   >
                     Create a team first
                   </button>

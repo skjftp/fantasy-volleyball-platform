@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import pvlLogo from '../assets/pvl-logo.svg';
 
 const MyProfilePage: React.FC = () => {
   const { userProfile, signOut } = useAuth();
@@ -7,11 +8,10 @@ const MyProfilePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-red-600 text-white">
+      <header className="bg-black text-white">
         <div className="container py-4">
-          <div className="text-center">
-            <h1 className="text-xl font-bold">My Profile</h1>
-            <p className="text-red-100 text-sm">Account Details & Statistics</p>
+          <div className="flex items-center justify-center">
+            <img src={pvlLogo} alt="Prime Volleyball League" className="h-10 w-auto" />
           </div>
         </div>
       </header>
@@ -21,7 +21,7 @@ const MyProfilePage: React.FC = () => {
         {/* Profile Info */}
         <div className="bg-white rounded-lg p-6 border shadow-sm mb-6">
           <div className="text-center mb-6">
-            <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl font-bold text-white">
                 {userProfile?.name?.charAt(0) || 'U'}
               </span>
@@ -94,13 +94,13 @@ const MyProfilePage: React.FC = () => {
 
             <button 
               onClick={signOut}
-              className="w-full p-4 text-left hover:bg-red-50 transition-colors flex items-center justify-between text-red-600"
+              className="w-full p-4 text-left hover:bg-gray-50 transition-colors flex items-center justify-between text-black"
             >
               <div className="flex items-center space-x-3">
-                <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
                 </svg>
-                <span className="text-red-600">Logout</span>
+                <span className="text-black">Logout</span>
               </div>
             </button>
           </div>

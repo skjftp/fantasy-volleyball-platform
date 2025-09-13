@@ -48,7 +48,7 @@ const TeamCreatePage: React.FC = () => {
     { key: 'libero' as const, label: 'Libero', short: 'LIB', color: 'bg-yellow-100 text-yellow-800' },
     { key: 'setter' as const, label: 'Setter', short: 'SET', color: 'bg-blue-100 text-blue-800' },
     { key: 'blocker' as const, label: 'Blocker', short: 'BLK', color: 'bg-green-100 text-green-800' },
-    { key: 'attacker' as const, label: 'Attacker', short: 'ATT', color: 'bg-red-100 text-red-800' },
+    { key: 'attacker' as const, label: 'Attacker', short: 'ATT', color: 'bg-gray-100 text-gray-800' },
     { key: 'universal' as const, label: 'Universal', short: 'UNI', color: 'bg-purple-100 text-purple-800' }
   ];
 
@@ -403,7 +403,7 @@ const TeamCreatePage: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-black text-white sticky top-0 z-10">
-        <div className="container py-5">
+        <div className="container py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <button 
@@ -478,7 +478,7 @@ const TeamCreatePage: React.FC = () => {
                 onClick={() => setActiveCategory(category.key)}
                 className={`flex-1 min-w-16 py-3 px-2 text-center transition-colors ${
                   activeCategory === category.key
-                    ? 'border-b-2 border-red-600 text-red-600 font-medium'
+                    ? 'border-b-2 border-black text-black font-medium'
                     : 'text-gray-600 hover:text-gray-800'
                 }`}
               >
@@ -487,7 +487,7 @@ const TeamCreatePage: React.FC = () => {
                   {counts[category.key]}/{getCategoryConstraints(category.key).max} selected
                 </div>
                 <div className={`text-xs mt-1 ${
-                  counts[category.key] === 0 ? 'text-red-500' : 
+                  counts[category.key] === 0 ? 'text-gray-500' : 
                   counts[category.key] >= getCategoryConstraints(category.key).min && 
                   counts[category.key] <= getCategoryConstraints(category.key).max ? 'text-green-600' : 'text-orange-500'
                 }`}>
@@ -523,7 +523,7 @@ const TeamCreatePage: React.FC = () => {
                   ? 'border-green-500 bg-green-50 ring-1 ring-green-500'
                   : canSelectPlayer(player)
                   ? 'border-gray-200 hover:border-blue-400 hover:shadow-md cursor-pointer'
-                  : 'border-red-200 bg-red-50 opacity-75 cursor-not-allowed'
+                  : 'border-gray-200 bg-gray-50 opacity-75 cursor-not-allowed'
               }`}
             >
               <div className="flex items-center justify-between">
@@ -573,13 +573,13 @@ const TeamCreatePage: React.FC = () => {
                           ? 'bg-green-600 border-green-600 text-white'
                           : canSelectPlayer(player)
                           ? 'border-gray-300 hover:border-green-600 text-gray-400 hover:text-green-600'
-                          : 'border-red-300 text-red-300 cursor-not-allowed bg-red-50'
+                          : 'border-gray-300 text-gray-300 cursor-not-allowed bg-gray-50'
                       }`}
                     >
                       {isPlayerSelected(player.playerId) ? '✓' : canSelectPlayer(player) ? '+' : '✕'}
                     </button>
                     {!canSelectPlayer(player) && !isPlayerSelected(player.playerId) && (
-                      <span className="text-xs text-red-500 mt-1 text-center">
+                      <span className="text-xs text-gray-500 mt-1 text-center">
                         {creditsUsed + player.credits > TOTAL_CREDITS ? 'Budget' :
                          getCategoryRequirement()[player.category] >= getCategoryConstraints(player.category).max ? 'Max Cat' :
                          selectedPlayers.filter(p => p.team === player.team).length >= MAX_PLAYERS_PER_TEAM ? 'Max Team' :
@@ -600,7 +600,7 @@ const TeamCreatePage: React.FC = () => {
             <div className="flex justify-between items-center">
               <span>Libero:</span>
               <span className={`font-medium ${
-                counts.libero === 1 ? 'text-green-600' : 'text-red-600'
+                counts.libero === 1 ? 'text-green-600' : 'text-gray-600'
               }`}>
                 {counts.libero}/1 (exactly 1)
               </span>
@@ -608,7 +608,7 @@ const TeamCreatePage: React.FC = () => {
             <div className="flex justify-between items-center">
               <span>Setters:</span>
               <span className={`font-medium ${
-                counts.setter >= 1 && counts.setter <= 2 ? 'text-green-600' : 'text-red-600'
+                counts.setter >= 1 && counts.setter <= 2 ? 'text-green-600' : 'text-gray-600'
               }`}>
                 {counts.setter}/1-2
               </span>
@@ -616,7 +616,7 @@ const TeamCreatePage: React.FC = () => {
             <div className="flex justify-between items-center">
               <span>Blockers:</span>
               <span className={`font-medium ${
-                counts.blocker >= 1 && counts.blocker <= 2 ? 'text-green-600' : 'text-red-600'
+                counts.blocker >= 1 && counts.blocker <= 2 ? 'text-green-600' : 'text-gray-600'
               }`}>
                 {counts.blocker}/1-2
               </span>
@@ -624,7 +624,7 @@ const TeamCreatePage: React.FC = () => {
             <div className="flex justify-between items-center">
               <span>Attackers:</span>
               <span className={`font-medium ${
-                counts.attacker >= 1 && counts.attacker <= 2 ? 'text-green-600' : 'text-red-600'
+                counts.attacker >= 1 && counts.attacker <= 2 ? 'text-green-600' : 'text-gray-600'
               }`}>
                 {counts.attacker}/1-2
               </span>
@@ -632,7 +632,7 @@ const TeamCreatePage: React.FC = () => {
             <div className="flex justify-between items-center">
               <span>Universal:</span>
               <span className={`font-medium ${
-                counts.universal >= 1 && counts.universal <= 2 ? 'text-green-600' : 'text-red-600'
+                counts.universal >= 1 && counts.universal <= 2 ? 'text-green-600' : 'text-gray-600'
               }`}>
                 {counts.universal}/1-2
               </span>
@@ -641,7 +641,7 @@ const TeamCreatePage: React.FC = () => {
               <div className="flex justify-between items-center">
                 <span className="font-medium">Total Budget:</span>
                 <span className={`font-bold ${
-                  creditsUsed > TOTAL_CREDITS * 0.9 ? 'text-red-600' : 
+                  creditsUsed > TOTAL_CREDITS * 0.9 ? 'text-gray-600' : 
                   creditsUsed > TOTAL_CREDITS * 0.75 ? 'text-orange-600' : 'text-green-600'
                 }`}>
                   {creditsUsed.toFixed(1)}/{TOTAL_CREDITS}

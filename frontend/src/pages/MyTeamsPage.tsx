@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import pvlLogo from '../assets/pvl-logo.svg';
 
 interface UserTeam {
   teamId: string;
@@ -224,19 +225,18 @@ const MyTeamsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-red-600 text-white">
-        <div className="container py-3">
+      <header className="bg-black text-white">
+        <div className="container py-4">
           <div className="flex items-center justify-between">
             <button 
               onClick={() => navigate('/')}
-              className="flex items-center text-white hover:text-gray-200"
+              className="flex items-center text-white hover:text-gray-300 mr-4"
             >
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11a2 2 0 010-2.828L6.293 4.465a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z" clipRule="evenodd" />
               </svg>
-              Back
             </button>
-            <h1 className="text-xl font-bold">My Teams</h1>
+            <img src={pvlLogo} alt="Prime Volleyball League" className="h-10 w-auto" />
             <div className="w-16"></div>
           </div>
         </div>
@@ -267,7 +267,7 @@ const MyTeamsPage: React.FC = () => {
             
             <Link 
               to={matchId ? `/match/${matchId}/create-team` : "/"}
-              className="inline-flex items-center bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+              className="inline-flex items-center bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors"
             >
               <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
@@ -296,7 +296,7 @@ const MyTeamsPage: React.FC = () => {
                   {/* Team Header */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className="bg-red-600 text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold">
+                      <div className="bg-black text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold">
                         {team.teamName}
                       </div>
                       <div>
@@ -424,12 +424,12 @@ const MyTeamsPage: React.FC = () => {
             </Link>
             
             <Link to={matchId ? `/match/${matchId}/my-teams` : "/my-teams"} className="flex flex-col items-center space-y-1 py-2">
-              <div className="bg-red-600 rounded-full p-2">
+              <div className="bg-black rounded-full p-2">
                 <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
                 </svg>
               </div>
-              <span className="text-xs font-medium text-red-600">My Teams(1)</span>
+              <span className="text-xs font-medium text-black">My Teams(1)</span>
             </Link>
           </div>
         </div>

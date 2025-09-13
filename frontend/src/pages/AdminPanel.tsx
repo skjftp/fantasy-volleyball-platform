@@ -187,7 +187,7 @@ const AdminPanel: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-black text-white">
-        <div className="container py-5">
+        <div className="container py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <img src={pvlLogo} alt="Prime Volleyball League" className="h-12 w-auto mr-4" />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import pvlLogo from '../assets/pvl-logo.svg';
 
 interface LeaderboardEntry {
   rank: number;
@@ -154,12 +155,12 @@ const ContestLeaderboardPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-red-600 text-white">
-        <div className="container py-3">
+      <header className="bg-black text-white">
+        <div className="container py-4">
           <div className="flex items-center space-x-3">
             <Link 
               to="/my-contests"
-              className="text-white hover:text-red-200"
+              className="text-white hover:text-gray-300"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -168,7 +169,7 @@ const ContestLeaderboardPage: React.FC = () => {
             <div>
               <h1 className="text-xl font-bold">{contest?.name || 'Contest Leaderboard'}</h1>
               {contest && (
-                <p className="text-sm text-red-200">
+                <p className="text-sm text-gray-300">
                   ₹{contest.totalPrizePool?.toLocaleString()} • {contest.joinedUsers} users
                 </p>
               )}
