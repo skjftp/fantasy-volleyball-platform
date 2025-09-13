@@ -67,52 +67,6 @@ const AwayPlayerAvatar: React.FC<{ className?: string }> = ({ className = "w-12 
     <ellipse cx="50" cy="35" rx="16" ry="20" fill="#D4A574"/>
     
     {/* Hair - more natural style */}
-    <path d="M34 25 Q42 18 50 20 Q58 18 66 25 Q66 30 62 35 Q58 32 50 32 Q42 32 38 35 Q34 30 34 25" fill="#3C2A1E"/>
-    
-    {/* Face features */}
-    {/* Eyes with more detail */}
-    <ellipse cx="43" cy="32" rx="3" ry="4" fill="white"/>
-    <ellipse cx="57" cy="32" rx="3" ry="4" fill="white"/>
-    <circle cx="43" cy="32" r="2" fill="#1F2937"/>
-    <circle cx="57" cy="32" r="2" fill="#1F2937"/>
-    <circle cx="44" cy="31" r="0.5" fill="white"/>
-    <circle cx="58" cy="31" r="0.5" fill="white"/>
-    
-    {/* Eyebrows */}
-    <path d="M38 27 Q43 25 48 27" stroke="#3C2A1E" strokeWidth="2" fill="none"/>
-    <path d="M52 27 Q57 25 62 27" stroke="#3C2A1E" strokeWidth="2" fill="none"/>
-    
-    {/* Nose with nostrils */}
-    <path d="M48 38 Q50 42 52 38" stroke="#B45309" strokeWidth="1.5" fill="none"/>
-    <ellipse cx="48.5" cy="40" rx="0.5" ry="1" fill="#B45309"/>
-    <ellipse cx="51.5" cy="40" rx="0.5" ry="1" fill="#B45309"/>
-    
-    {/* Mouth with slight smile */}
-    <path d="M45 45 Q50 48 55 45" stroke="#1F2937" strokeWidth="2" fill="none"/>
-    
-    {/* Jawline definition */}
-    <path d="M35 48 Q50 55 65 48" stroke="#B45309" strokeWidth="0.5" fill="none" opacity="0.3"/>
-  </svg>
-);
-
-const AwayPlayerAvatar: React.FC<{ className?: string }> = ({ className = "w-12 h-12" }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    {/* Background circle - Away team red */}
-    <circle cx="50" cy="50" r="48" fill="#EF4444" stroke="#DC2626" strokeWidth="2"/>
-    
-    {/* Shoulders and upper chest */}
-    <ellipse cx="50" cy="75" rx="30" ry="12" fill="#D4A574"/>
-    
-    {/* Chest/Upper torso */}
-    <rect x="30" y="65" width="40" height="30" rx="8" fill="#D4A574"/>
-    
-    {/* Neck */}
-    <rect x="44" y="58" width="12" height="10" fill="#D4A574"/>
-    
-    {/* Head - realistic human proportions */}
-    <ellipse cx="50" cy="35" rx="16" ry="20" fill="#D4A574"/>
-    
-    {/* Hair - more natural style */}
     <path d="M34 25 Q42 18 50 20 Q58 18 66 25 Q66 30 62 35 Q58 32 50 32 Q42 32 38 35 Q34 30 34 25" fill="#2D1810"/>
     
     {/* Face features */}
