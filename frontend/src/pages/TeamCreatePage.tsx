@@ -33,6 +33,7 @@ const TeamCreatePage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<'libero' | 'setter' | 'blocker' | 'attacker' | 'universal'>('libero');
   const [loading, setLoading] = useState(true);
   const [creditsUsed, setCreditsUsed] = useState(0);
+  const [showTeamPreview, setShowTeamPreview] = useState(false);
 
   const TOTAL_CREDITS = 100;
   const TEAM_SIZE = 6;
@@ -495,31 +496,11 @@ const TeamCreatePage: React.FC = () => {
                 }`}
               >
                 <div className="text-sm font-medium">{category.short}</div>
-                <div className="text-xs">
-                  {counts[category.key]}/{getCategoryConstraints(category.key).max} selected
-                </div>
-                <div className={`text-xs mt-1 ${
-                  counts[category.key] === 0 ? 'text-gray-500' : 
-                  counts[category.key] >= getCategoryConstraints(category.key).min && 
-                  counts[category.key] <= getCategoryConstraints(category.key).max ? 'text-green-600' : 'text-orange-500'
-                }`}>
-                  {counts[category.key] === 0 ? 'Required' : 
-                   counts[category.key] >= getCategoryConstraints(category.key).min && 
-                   counts[category.key] <= getCategoryConstraints(category.key).max ? '✓' : 
-                   category.key === 'libero' ? 'Need exactly 1' : 'Need 1-2'}
+                <div className="text-xs mt-1">
+                  {counts[category.key]}/{getCategoryConstraints(category.key).max}
                 </div>
               </button>
             ))}
-          </div>
-          
-          {/* Quick Create Button */}
-          <div className="mt-3 text-center">
-            <button className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center mx-auto space-x-2">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
-              </svg>
-              <span>Quick Create</span>
-            </button>
           </div>
         </div>
       </div>
@@ -668,8 +649,16 @@ const TeamCreatePage: React.FC = () => {
       <div className="fixed bottom-0 left-0 right-0 bg-white p-4">
         <div className="container">
           <div className="grid grid-cols-2 gap-3">
-            <button className="py-3 rounded-lg font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
-              Team Preview
+            <button 
+              onClick={() => setShowTeamPreview(true)}
+              disabled={selectedPlayers.length === 0}
+              className={`py-3 rounded-lg font-medium border transition-colors ${
+                selectedPlayers.length === 0
+                  ? 'border-gray-300 text-gray-400 cursor-not-allowed'
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              Team Preview ({selectedPlayers.length})
             </button>
             
             <button
@@ -689,6 +678,194 @@ const TeamCreatePage: React.FC = () => {
 
       {/* Bottom padding */}
       <div className="h-32"></div>
+      
+      {/* Team Preview Modal */}
+      {showTeamPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-800">Team Preview</h2>
+                <button 
+                  onClick={() => setShowTeamPreview(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                {selectedPlayers.length}/6 players selected
+              </p>
+            </div>
+            
+            {/* Volleyball Court */}
+            <div className="p-6">
+              <div className="relative bg-gradient-to-b from-orange-100 to-orange-200 rounded-lg p-4 min-h-[400px]">
+                {/* Court boundaries */}
+                <div className="absolute inset-4 border-2 border-white rounded">
+                  {/* Net in the middle */}
+                  <div className="absolute top-1/2 left-0 right-0 h-1 bg-white transform -translate-y-0.5"></div>
+                  
+                  {/* Attack lines */}
+                  <div className="absolute top-1/4 left-0 right-0 h-0.5 bg-white opacity-50"></div>
+                  <div className="absolute top-3/4 left-0 right-0 h-0.5 bg-white opacity-50"></div>
+                  
+                  {/* Position players on court */}
+                  {/* Back Row - Top Half */}
+                  <div className="absolute top-2 left-0 right-0 h-1/2">
+                    <div className="relative h-full grid grid-cols-3 gap-2 p-2">
+                      {/* Position 5 - Back Left */}
+                      <div className="flex flex-col items-center justify-center">
+                        {selectedPlayers.filter(p => p.category === 'universal').slice(0, 1).map(player => (
+                          <div key={player.playerId} className="text-center">
+                            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1">
+                              {player.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div className="text-xs text-gray-700 font-medium">{player.name.split(' ')[0]}</div>
+                            <div className="text-xs text-gray-600">{player.category.toUpperCase()}</div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Position 6 - Back Center */}
+                      <div className="flex flex-col items-center justify-center">
+                        {selectedPlayers.filter(p => p.category === 'libero').slice(0, 1).map(player => (
+                          <div key={player.playerId} className="text-center">
+                            <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1">
+                              {player.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div className="text-xs text-gray-700 font-medium">{player.name.split(' ')[0]}</div>
+                            <div className="text-xs text-gray-600">{player.category.toUpperCase()}</div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Position 1 - Back Right */}
+                      <div className="flex flex-col items-center justify-center">
+                        {selectedPlayers.filter(p => p.category === 'attacker').slice(0, 1).map(player => (
+                          <div key={player.playerId} className="text-center">
+                            <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1">
+                              {player.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div className="text-xs text-gray-700 font-medium">{player.name.split(' ')[0]}</div>
+                            <div className="text-xs text-gray-600">{player.category.toUpperCase()}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Front Row - Bottom Half */}
+                  <div className="absolute bottom-2 left-0 right-0 h-1/2">
+                    <div className="relative h-full grid grid-cols-3 gap-2 p-2">
+                      {/* Position 4 - Front Left */}
+                      <div className="flex flex-col items-center justify-center">
+                        {selectedPlayers.filter(p => p.category === 'attacker').slice(1, 2).map(player => (
+                          <div key={player.playerId} className="text-center">
+                            <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1">
+                              {player.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div className="text-xs text-gray-700 font-medium">{player.name.split(' ')[0]}</div>
+                            <div className="text-xs text-gray-600">{player.category.toUpperCase()}</div>
+                          </div>
+                        )) || selectedPlayers.filter(p => p.category === 'universal').slice(1, 2).map(player => (
+                          <div key={player.playerId} className="text-center">
+                            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1">
+                              {player.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div className="text-xs text-gray-700 font-medium">{player.name.split(' ')[0]}</div>
+                            <div className="text-xs text-gray-600">{player.category.toUpperCase()}</div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Position 3 - Front Center */}
+                      <div className="flex flex-col items-center justify-center">
+                        {selectedPlayers.filter(p => p.category === 'blocker').slice(0, 1).map(player => (
+                          <div key={player.playerId} className="text-center">
+                            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1">
+                              {player.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div className="text-xs text-gray-700 font-medium">{player.name.split(' ')[0]}</div>
+                            <div className="text-xs text-gray-600">{player.category.toUpperCase()}</div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Position 2 - Front Right */}
+                      <div className="flex flex-col items-center justify-center">
+                        {selectedPlayers.filter(p => p.category === 'setter').slice(0, 1).map(player => (
+                          <div key={player.playerId} className="text-center">
+                            <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1">
+                              {player.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div className="text-xs text-gray-700 font-medium">{player.name.split(' ')[0]}</div>
+                            <div className="text-xs text-gray-600">{player.category.toUpperCase()}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Position Labels */}
+                <div className="absolute top-2 right-2 bg-white bg-opacity-80 rounded p-2">
+                  <div className="text-xs text-gray-600 font-medium mb-1">Positions:</div>
+                  <div className="text-xs space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                      <span>Setter</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                      <span>Attacker</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span>Blocker</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                      <span>Libero</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                      <span>Universal</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Team Stats */}
+              <div className="mt-4 bg-gray-50 rounded-lg p-3">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Players:</span>
+                    <span className="ml-2 font-medium">{selectedPlayers.length}/6</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Credits:</span>
+                    <span className="ml-2 font-medium">{creditsUsed.toFixed(1)}/{TOTAL_CREDITS}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="p-6 border-t">
+              <button
+                onClick={() => setShowTeamPreview(false)}
+                className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
