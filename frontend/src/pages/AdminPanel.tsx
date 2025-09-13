@@ -24,12 +24,24 @@ interface Player {
   selectionPercentage: number;
 }
 
+interface Team {
+  teamId: string;
+  name: string;
+  code: string;
+  logo: string;
+  homeCity: string;
+  captain: string;
+  coach: string;
+}
+
 const AdminPanel: React.FC = () => {
   const { signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'matches' | 'players' | 'contests'>('matches');
+  const [activeTab, setActiveTab] = useState<'matches' | 'players' | 'teams' | 'contests'>('matches');
   const [matches, setMatches] = useState<Match[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
 
   // Form states
   const [newMatch, setNewMatch] = useState({
@@ -53,11 +65,22 @@ const AdminPanel: React.FC = () => {
     isStarting6: true
   });
 
+  const [newTeam, setNewTeam] = useState({
+    name: '',
+    code: '',
+    logo: '',
+    homeCity: '',
+    captain: '',
+    coach: ''
+  });
+
   useEffect(() => {
     if (activeTab === 'matches') {
       fetchMatches();
     } else if (activeTab === 'players') {
       fetchPlayers();
+    } else if (activeTab === 'teams') {
+      fetchTeams();
     }
   }, [activeTab]);
 
@@ -84,6 +107,20 @@ const AdminPanel: React.FC = () => {
       setPlayers(data || []);
     } catch (error) {
       console.error('Error fetching players:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTeams = async () => {
+    setLoading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      const response = await fetch(`${apiUrl}/admin/teams`);
+      const data = await response.json();
+      setTeams(data || []);
+    } catch (error) {
+      console.error('Error fetching teams:', error);
     } finally {
       setLoading(false);
     }
@@ -183,6 +220,81 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  const handleCreateTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      const teamData = {
+        teamId: `team_${Date.now()}`,
+        name: newTeam.name,
+        code: newTeam.code,
+        logo: newTeam.logo || `https://via.placeholder.com/40x40/000000/FFFFFF?text=${newTeam.code}`,
+        homeCity: newTeam.homeCity,
+        captain: newTeam.captain,
+        coach: newTeam.coach,
+        createdAt: new Date().toISOString()
+      };
+
+      const response = await fetch(`${apiUrl}/admin/teams`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(teamData)
+      });
+
+      if (response.ok) {
+        alert('Team created successfully!');
+        setNewTeam({
+          name: '', code: '', logo: '', homeCity: '', captain: '', coach: ''
+        });
+        fetchTeams();
+      } else {
+        alert('Failed to create team');
+      }
+    } catch (error) {
+      console.error('Error creating team:', error);
+      alert('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTeam) return;
+
+    setLoading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://fantasy-volleyball-backend-107958119805.us-central1.run.app/api';
+      const response = await fetch(`${apiUrl}/admin/teams/${editingTeam.teamId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...editingTeam,
+          updatedAt: new Date().toISOString()
+        })
+      });
+
+      if (response.ok) {
+        alert('Team updated successfully!');
+        setEditingTeam(null);
+        fetchTeams();
+      } else {
+        alert('Failed to update team');
+      }
+    } catch (error) {
+      console.error('Error updating team:', error);
+      alert('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -214,6 +326,7 @@ const AdminPanel: React.FC = () => {
             {[
               { key: 'matches' as const, label: 'Matches', icon: '⚽' },
               { key: 'players' as const, label: 'Players', icon: '👥' },
+              { key: 'teams' as const, label: 'Teams', icon: '🏟️' },
               { key: 'contests' as const, label: 'Contests', icon: '🏆' }
             ].map((tab) => (
               <button
@@ -552,6 +665,208 @@ const AdminPanel: React.FC = () => {
                           {player.isStarting6 ? 'Starting 6' : 'Substitute'}
                         </div>
                       </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'teams' && (
+          <div className="space-y-6">
+            {/* Create/Edit Team Form */}
+            <div className="bg-white rounded-lg p-6 border">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                {editingTeam ? 'Edit Team' : 'Create New Team'}
+              </h2>
+              <form onSubmit={editingTeam ? handleUpdateTeam : handleCreateTeam} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Team Name</label>
+                    <input
+                      type="text"
+                      value={editingTeam ? editingTeam.name : newTeam.name}
+                      onChange={(e) => editingTeam 
+                        ? setEditingTeam({...editingTeam, name: e.target.value})
+                        : setNewTeam({...newTeam, name: e.target.value})
+                      }
+                      className="input-field"
+                      placeholder="Ahmedabad Defenders"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Team Code</label>
+                    <input
+                      type="text"
+                      value={editingTeam ? editingTeam.code : newTeam.code}
+                      onChange={(e) => editingTeam 
+                        ? setEditingTeam({...editingTeam, code: e.target.value})
+                        : setNewTeam({...newTeam, code: e.target.value})
+                      }
+                      className="input-field"
+                      placeholder="AMD"
+                      maxLength={5}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Home City</label>
+                  <input
+                    type="text"
+                    value={editingTeam ? editingTeam.homeCity : newTeam.homeCity}
+                    onChange={(e) => editingTeam 
+                      ? setEditingTeam({...editingTeam, homeCity: e.target.value})
+                      : setNewTeam({...newTeam, homeCity: e.target.value})
+                    }
+                    className="input-field"
+                    placeholder="Ahmedabad"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Captain</label>
+                    <input
+                      type="text"
+                      value={editingTeam ? editingTeam.captain : newTeam.captain}
+                      onChange={(e) => editingTeam 
+                        ? setEditingTeam({...editingTeam, captain: e.target.value})
+                        : setNewTeam({...newTeam, captain: e.target.value})
+                      }
+                      className="input-field"
+                      placeholder="Captain Name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Coach</label>
+                    <input
+                      type="text"
+                      value={editingTeam ? editingTeam.coach : newTeam.coach}
+                      onChange={(e) => editingTeam 
+                        ? setEditingTeam({...editingTeam, coach: e.target.value})
+                        : setNewTeam({...newTeam, coach: e.target.value})
+                      }
+                      className="input-field"
+                      placeholder="Coach Name"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Team Logo URL</label>
+                  <input
+                    type="url"
+                    value={editingTeam ? editingTeam.logo : newTeam.logo}
+                    onChange={(e) => editingTeam 
+                      ? setEditingTeam({...editingTeam, logo: e.target.value})
+                      : setNewTeam({...newTeam, logo: e.target.value})
+                    }
+                    className="input-field"
+                    placeholder="https://example.com/logo.png or data:image/webp;base64,..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Team Logo Upload</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          const base64 = event.target?.result as string;
+                          if (editingTeam) {
+                            setEditingTeam({...editingTeam, logo: base64});
+                          } else {
+                            setNewTeam({...newTeam, logo: base64});
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="input-field text-sm"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Upload an image file or paste a URL above. Uploaded images will be converted to base64.
+                  </p>
+                </div>
+
+                {/* Logo Preview */}
+                {((editingTeam?.logo) || newTeam.logo) && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Logo Preview</label>
+                    <img 
+                      src={editingTeam ? editingTeam.logo : newTeam.logo} 
+                      alt="Team Logo Preview" 
+                      className="w-16 h-16 object-contain border rounded"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-primary flex-1 py-3"
+                  >
+                    {loading ? (editingTeam ? 'Updating...' : 'Creating...') : (editingTeam ? 'Update Team' : 'Create Team')}
+                  </button>
+                  
+                  {editingTeam && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingTeam(null)}
+                      className="bg-gray-500 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+
+            {/* Teams List */}
+            <div className="bg-white rounded-lg border">
+              <div className="p-4 border-b">
+                <h2 className="text-lg font-semibold text-gray-800">Teams</h2>
+              </div>
+              <div className="divide-y">
+                {teams.map((team) => (
+                  <div key={team.teamId} className="p-4 hover:bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <img src={team.logo} alt={team.name} className="w-12 h-12 object-contain border rounded" />
+                        <div>
+                          <div className="font-medium text-gray-800">{team.name}</div>
+                          <div className="text-sm text-gray-600">
+                            {team.code} • {team.homeCity}
+                          </div>
+                          {(team.captain || team.coach) && (
+                            <div className="text-xs text-gray-500">
+                              {team.captain && `Captain: ${team.captain}`}
+                              {team.captain && team.coach && ' • '}
+                              {team.coach && `Coach: ${team.coach}`}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setEditingTeam(team)}
+                        className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+                      >
+                        Edit
+                      </button>
                     </div>
                   </div>
                 ))}
