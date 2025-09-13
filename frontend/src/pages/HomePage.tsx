@@ -91,23 +91,35 @@ const HomePage: React.FC = () => {
       return {
         status: 'live',
         timeLeft: 'LIVE',
-        matchTime: matchTime.toLocaleTimeString('en-IN', {
-          hour: '2-digit',
-          minute: '2-digit',
+        matchTime: matchTime.toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short'
+        }) + ' ' + matchTime.toLocaleTimeString('en-IN', {
+          hour: 'numeric',
           hour12: true
         })
       };
     }
 
-    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    let timeLeft = '';
+    if (days > 0) {
+      timeLeft = `${days}d ${hours}h ${minutes}m Left`;
+    } else {
+      timeLeft = `${hours}h ${minutes}m Left`;
+    }
 
     return {
       status: 'upcoming',
-      timeLeft: `${hours}h ${minutes}m Left`,
-      matchTime: matchTime.toLocaleTimeString('en-IN', {
-        hour: '2-digit',
-        minute: '2-digit',
+      timeLeft,
+      matchTime: matchTime.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short'
+      }) + ' ' + matchTime.toLocaleTimeString('en-IN', {
+        hour: 'numeric',
         hour12: true
       })
     };
@@ -205,34 +217,13 @@ const HomePage: React.FC = () => {
                 >
                   <div className="bg-white rounded-lg p-3 shadow-sm border hover:shadow-md transition-shadow">
                     {/* Tournament Name - Centered */}
-                    <div className="text-center mb-2">
+                    <div className="text-center mb-3">
                       <span className="text-xs font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
                         {match.league}
                       </span>
                     </div>
 
-                    {/* Match Date and Time */}
-                    <div className="text-center mb-2">
-                      <div className="text-xs text-gray-600 mb-1">
-                        {new Date(match.startTime).toLocaleDateString('en-IN', {
-                          weekday: 'short',
-                          day: 'numeric',
-                          month: 'short'
-                        })}
-                      </div>
-                      <div className="text-sm font-medium text-gray-800">
-                        {timeInfo.matchTime}
-                      </div>
-                      <div className={`text-xs font-medium px-2 py-0.5 rounded mt-1 ${
-                        timeInfo.status === 'live' 
-                          ? 'text-red-600 bg-red-100' 
-                          : 'text-orange-600 bg-orange-100'
-                      }`}>
-                        {timeInfo.timeLeft}
-                      </div>
-                    </div>
-
-                    {/* Teams */}
+                    {/* Teams with Date/Time in center */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3 flex-1">
                         <TeamLogo
@@ -250,8 +241,19 @@ const HomePage: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex-shrink-0 mx-4">
+                      {/* Center section with date/time and VS */}
+                      <div className="flex-shrink-0 mx-4 text-center">
+                        <div className="text-xs text-gray-600 mb-1">
+                          {timeInfo.matchTime}
+                        </div>
                         <span className="text-sm font-medium text-gray-600">VS</span>
+                        <div className={`text-xs font-medium px-2 py-0.5 rounded mt-1 ${
+                          timeInfo.status === 'live' 
+                            ? 'text-red-600 bg-red-100' 
+                            : 'text-orange-600 bg-orange-100'
+                        }`}>
+                          {timeInfo.timeLeft}
+                        </div>
                       </div>
 
                       <div className="flex items-center space-x-3 flex-1 flex-row-reverse">
